@@ -17,7 +17,8 @@ library
   exposed-modules:     GHC.Generics.Extra,
                        Generics.Kind.ListOfTypes,
                        Generics.Kind.Atom,
-                       Generics.Kind
+                       Generics.Kind,
+                       Generics.Kind.Examples
   -- other-modules:
   -- other-extensions:
   build-depends:       base >=4.12 && <5

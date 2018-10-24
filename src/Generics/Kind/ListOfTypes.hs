@@ -5,6 +5,9 @@
 {-# language KindSignatures  #-}
 {-# language TypeInType      #-}
 {-# language PatternSynonyms #-}
+{-# language UndecidableInstances #-}
+{-# language FlexibleContexts     #-}
+{-# language ScopedTypeVariables  #-}
 module Generics.Kind.ListOfTypes where
 
 import Data.Kind
@@ -57,9 +60,29 @@ unravel :: f :@@: ts -> Apply f ts
 unravel (A0  x) = x
 unravel (Arg x) = unravel x
 
-ravel  ::  SForLoT ts =>  Apply f ts -> f :@@: ts
+unravel' :: SLoT ts -> f :@@: ts -> Apply f ts
+unravel' _ = unravel
+
+ravel :: SForLoT ts => Apply f ts -> f :@@: ts
 ravel = ravel' slot
 
-ravel' :: SLoT ts ->  Apply f ts -> f :@@: ts
+ravel' :: SLoT ts -> Apply f ts -> f :@@: ts
 ravel' SLoT0      x = A0  x
 ravel' (SLoTA ts) x = Arg (ravel' ts x)
+
+type family Split (t :: d) (f :: k) :: LoT k where
+  Split t f = Split' t f LoT0
+
+type family Split' (t :: d) (f :: k) (p :: LoT l) :: LoT k where
+  Split' f     f acc = acc
+  Split' (t a) f acc = Split' t f (a :&&: acc)
+
+split :: forall f t.
+         (SForLoT (Split t f), t ~ Apply f (Split t f))
+      => t -> f :@@: Split t f
+split = ravel
+
+unsplit :: forall f t.
+           (SForLoT (Split t f), t ~ Apply f (Split t f))
+        => f :@@: Split t f -> t
+unsplit = unravel
