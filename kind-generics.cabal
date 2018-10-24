@@ -16,7 +16,8 @@ extra-source-files:  CHANGELOG.md
 library
   exposed-modules:     GHC.Generics.Extra,
                        Generics.Kind.ListOfTypes,
-                       Generics.Kind.Atom
+                       Generics.Kind.Atom,
+                       Generics.Kind
   -- other-modules:
   -- other-extensions:
   build-depends:       base >=4.12 && <5

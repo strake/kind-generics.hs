@@ -5,7 +5,7 @@
 {-# language TypeOperators   #-}
 module GHC.Generics.Extra (
   module GHC.Generics
-, C1(..)
+, (:=>:)(..)
 ) where
 
 import Data.Kind
