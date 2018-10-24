@@ -22,7 +22,7 @@ module Generics.Kind (
 , (:+:)(..), (:*:)(..), U1(..), M1(..)
 , F(..), (:=>:)(..), E(..)
 , GenericK(..), Conv(..)
-, GenericS, fromK', toK'
+, SForLoT(..), GenericS, fromK', toK'
 , fromKDefault, toKDefault
 ) where
 

@@ -34,6 +34,10 @@ data Mappings (v :: Variances) (x :: LoT k) (y :: LoT k) where
 class KFunctor (f :: k) (v :: Variances) | f -> v where
   kfmap :: Mappings v as bs -> f :@@: as -> f :@@: bs
 
+kfmapDef :: (GenericK f, GFunctor (RepK f) v as bs, SForLoT as, SForLoT bs)
+         => Mappings v as bs -> f :@@: as -> f :@@: bs
+kfmapDef v = toK slot . gfmap v . fromK slot
+
 class GFunctor (f :: LoT k -> *) (v :: Variances) (as :: LoT k) (bs :: LoT k) where
   gfmap :: Mappings v as bs -> f as -> f bs
 
