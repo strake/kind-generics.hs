@@ -18,7 +18,8 @@ library
                        Generics.Kind.ListOfTypes,
                        Generics.Kind.Atom,
                        Generics.Kind,
-                       Generics.Kind.Examples
+                       Generics.Kind.Examples,
+                       Generics.Kind.Derive.Eq
   -- other-modules:
   -- other-extensions:
   build-depends:       base >=4.12 && <5

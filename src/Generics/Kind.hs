@@ -20,9 +20,9 @@ module Generics.Kind (
   module Generics.Kind.Atom
 , module Generics.Kind.ListOfTypes
 , (:+:)(..), (:*:)(..), U1(..), M1(..)
-, F(..), C(..), E(..)
+, F(..), (:=>:)(..), E(..)
 , GenericK(..), Conv(..)
-, fromK', toK'
+, GenericS, fromK', toK'
 , fromKDefault, toKDefault
 ) where
 
@@ -51,13 +51,13 @@ class GenericK (f :: k) where
   fromK :: SLoT x -> f :@@: x -> RepK f x
   toK   :: SLoT x -> RepK f x -> f :@@: x
 
-fromK' :: forall f t.
-          (GenericK f, SForLoT (Split t f), t ~ Apply f (Split t f))
+type GenericS f t = (GenericK f, SForLoT (Split t f), t ~ Apply f (Split t f))
+
+fromK' :: forall f t. GenericS f t
        => t -> RepK f (Split t f)
 fromK' x = fromK slot (split @f x)
 
-toK' :: forall f t.
-        (GenericK f, SForLoT (Split t f), t ~ Apply f (Split t f))
+toK' :: forall f t. GenericS f t
      => RepK f (Split t f) -> t
 toK' x = unsplit @f (toK slot x)
 
