@@ -10,6 +10,7 @@
 {-# language UndecidableInstances   #-}
 {-# language ScopedTypeVariables    #-}
 {-# language FunctionalDependencies #-}
+{-# language TypeApplications       #-}
 module Generics.Kind.Derive.Functor where
 
 import Data.Proxy
@@ -59,50 +60,58 @@ instance (forall t. GFunctor f (Fixed ': v) (t :&&: as) (t :&&: bs))
          => GFunctor (E f) v as bs where
   gfmap v (E x) = E (gfmap (MapC FixedM v) x)
 
-class GFunctorField (t :: Atom d (*)) (v :: Variances) (as :: LoT d) (bs :: LoT d) where
-  gfmapf :: Proxy t -> Mappings v as bs -> Ty t as -> Ty t bs
+class GFunctorArg (t :: Atom d (*))
+                  (v :: Variances) (intended :: Variance)
+                  (as :: LoT d) (bs :: LoT d) where
+  gfmapf :: Proxy t -> Proxy intended
+         -> Mappings v as bs
+         -> Mapping intended (Ty t as) (Ty t bs)
 
-class GFunctorHead (f :: Atom d k)
-                   (vin :: Variances) (vout :: Variances) 
-                   (as :: LoT d) (bs :: LoT d)
-                   (rs :: LoT k) (ts :: LoT k) where
-  gfmaph :: Proxy f
-         -> Mappings vin as bs -> Mappings vout rs ts
-         -> Ty f as :@@: rs -> Ty f bs :@@: ts
-
-instance forall t v as bs. GFunctorField t v as bs
+instance forall t v as bs. GFunctorArg t v Co as bs
          => GFunctor (F t) v as bs where
-  gfmap v (F x) = F (gfmapf (Proxy :: Proxy t) v x)
+  gfmap v (F x) = case gfmapf (Proxy @t) (Proxy @Co) v of
+                    CoM f -> F (f x)
 
-instance GFunctorField (Kon t) v as bs where
-  gfmapf _ _ x = x
+instance GFunctorArg (Kon t) v Co as bs where
+  gfmapf _ _ _ = CoM id
+instance GFunctorArg (Kon t) v Contra as bs where
+  gfmapf _ _ _ = ContraM id
+instance GFunctorArg (Kon t) v Fixed as bs where
+  gfmapf _ _ _ = FixedM
 
-instance GFunctorField (Var VZ) (Co ': v) (a :&&: as) (b :&&: bs) where
-  gfmapf _ (MapC (CoM f) _) x = f x
+instance GFunctorArg (Var VZ) (Co ': v) Co (a :&&: as) (b :&&: bs) where
+  gfmapf _ _ (MapC (CoM f) _) = CoM f
+instance GFunctorArg (Var VZ) (Contra ': v) Contra (a :&&: as) (b :&&: bs) where
+  gfmapf _ _ (MapC (ContraM f) _) = ContraM f
+instance GFunctorArg (Var VZ) (Fixed ': v) Fixed (a :&&: as) (b :&&: bs) where
+  gfmapf _ _ (MapC FixedM _) = FixedM
 
-instance forall vr pre v a as b bs.
-         GFunctorField (Var vr) v as bs
-         => GFunctorField (Var (VS vr)) (pre ': v) (a :&&: as) (b :&&: bs) where
-  gfmapf _ (MapC _ rest) x = gfmapf (Proxy :: Proxy (Var vr)) rest x
+instance forall vr pre v intended a as b bs.
+         GFunctorArg (Var vr) v intended as bs
+         => GFunctorArg (Var (VS vr)) (pre ': v) intended (a :&&: as) (b :&&: bs) where
+  gfmapf _ _ (MapC _ rest) = gfmapf (Proxy @(Var vr)) (Proxy @intended) rest
 
-instance forall f x v as bs.
-         ( GFunctorHead f v '[Co] as bs (Ty x as :&&: LoT0) (Ty x bs :&&: LoT0)
-         , GFunctorField x v as bs )
-         => GFunctorField (f :@: x) v as bs where
-  gfmapf _ v x = unA0 $ unArg
-               $ gfmaph (Proxy :: Proxy f) v (MapC (CoM (gfmapf (Proxy :: Proxy x) v)) Map0)
-               $ Arg $ A0 x
+instance forall f x v v1 as bs.
+         (KFunctor f '[v1], GFunctorArg x v v1 as bs)
+         => GFunctorArg (f :$: x) v Co as bs where
+  gfmapf _ _ v = CoM (unA0 . unArg . kfmap (MapC (gfmapf (Proxy @x) (Proxy @v1) v) Map0) . Arg . A0)
 
-instance forall f x v acc as bs rs ts.
-         ( GFunctorHead f v (Co ': acc) as bs (Ty x as :&&: rs) (Ty x bs :&&: ts)
-         , GFunctorField x v as bs )
-         => GFunctorHead (f :@: x) v acc as bs rs ts where
-  gfmaph _ v acc x = unArg
-                   $ gfmaph (Proxy :: Proxy f) v (MapC (CoM (gfmapf (Proxy :: Proxy x) v)) acc)
-                   $ Arg $ x
+instance forall f x y v v1 v2 as bs.
+         (KFunctor f '[v1, v2], GFunctorArg x v v1 as bs, GFunctorArg y v v2 as bs)
+         => GFunctorArg (f :$: x :@: y) v Co as bs where
+  gfmapf _ _ v = CoM ( unA0 . unArg . unArg .
+                       kfmap (MapC (gfmapf (Proxy @x) (Proxy @v1) v)
+                             (MapC (gfmapf (Proxy @y) (Proxy @v2) v)
+                             Map0)) . 
+                       Arg . Arg . A0 )
 
-instance KFunctor f acc => GFunctorHead (Kon f) v acc as bs ts rs where
-  gfmaph _ _ acc x = kfmap acc x
-
-instance KFunctor (Ty (Var vr) os) acc => GFunctorHead (Var vr) v acc os os ts rs where
-  gfmaph _ _ acc x = kfmap acc x
+instance forall f x y z v v1 v2 v3 as bs.
+         (KFunctor f '[v1, v2, v3], 
+          GFunctorArg x v v1 as bs, GFunctorArg y v v2 as bs, GFunctorArg z v v3 as bs)
+         => GFunctorArg (f :$: x :@: y :@: z) v Co as bs where
+  gfmapf _ _ v = CoM ( unA0 . unArg . unArg . unArg .
+                       kfmap (MapC (gfmapf (Proxy @x) (Proxy @v1) v)
+                             (MapC (gfmapf (Proxy @y) (Proxy @v2) v)
+                             (MapC (gfmapf (Proxy @z) (Proxy @v3) v)
+                             Map0))) . 
+                       Arg . Arg . Arg . A0 )
