@@ -41,6 +41,10 @@ class KFunctor (f :: k) (v :: Variances) (as :: LoT k) (bs :: LoT k) | f -> v wh
           => Mappings v as bs -> f :@@: as -> f :@@: bs
   kfmap v = toK @k @f @bs . gfmap v . fromK @k @f @as
 
+kmapo :: forall t f v as bs. (Break t f as, KFunctor f v as bs)
+      => Mappings v as bs -> t -> f :@@: bs
+kmapo = kfmap @_ @f
+
 class GFunctor (f :: LoT k -> *) (v :: Variances) (as :: LoT k) (bs :: LoT k) where
   gfmap :: Mappings v as bs -> f as -> f bs
 

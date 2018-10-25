@@ -5,9 +5,12 @@
 {-# language KindSignatures  #-}
 {-# language TypeInType      #-}
 {-# language PatternSynonyms #-}
-{-# language UndecidableInstances #-}
-{-# language FlexibleContexts     #-}
-{-# language ScopedTypeVariables  #-}
+{-# language UndecidableInstances   #-}
+{-# language FlexibleContexts       #-}
+{-# language ScopedTypeVariables    #-}
+{-# language MultiParamTypeClasses  #-}
+{-# language FunctionalDependencies #-}
+{-# language ConstraintKinds        #-}
 module Generics.Kind.ListOfTypes where
 
 import Data.Kind
@@ -36,3 +39,6 @@ type family SplitAt (n :: Nat) t :: TyEnv where
 type family SplitAt' (n :: Nat) (t :: d) (p :: LoT d) :: TyEnv where
   SplitAt' Z     t            acc = 'TyEnv t acc
   SplitAt' (S n) (t (a :: l)) acc = SplitAt' n t (a :&&: acc)
+
+class KindOf (t :: *) (f :: k) | t -> k f where
+type Break t f x = (KindOf t f, x ~ Split t f, t ~ (f :@@: x))

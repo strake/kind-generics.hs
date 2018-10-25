@@ -15,9 +15,9 @@ module Generics.Kind.Derive.Eq where
 
 import Generics.Kind
 
-geq' :: forall t f x. (GenericS t f x, GEq (RepK f) x)
+geq' :: forall t f x. (GenericO t f x, GEq (RepK f) x)
      => t -> t -> Bool
-geq' x y = geq (fromK @_ @f @x x) (fromK @_ @f @x y)
+geq' x y = geq (fromO x) (fromO y)
 
 class GEq (f :: LoT k -> *) (tys :: LoT k) where
   geq :: f tys -> f tys -> Bool
