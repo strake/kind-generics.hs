@@ -40,5 +40,5 @@ type family SplitAt' (n :: Nat) (t :: d) (p :: LoT d) :: TyEnv where
   SplitAt' Z     t            acc = 'TyEnv t acc
   SplitAt' (S n) (t (a :: l)) acc = SplitAt' n t (a :&&: acc)
 
-class KindOf (t :: *) (f :: k) | t -> k f where
-type Break t f x = (KindOf t f, x ~ Split t f, t ~ (f :@@: x))
+class HeadOf (t :: *) (f :: k) | t -> k f where
+type Break t f x = (HeadOf t f, x ~ Split t f, t ~ (f :@@: x))
