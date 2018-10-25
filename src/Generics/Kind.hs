@@ -16,6 +16,7 @@
 {-# language TypeApplications          #-}
 {-# language AllowAmbiguousTypes       #-}
 {-# language QuantifiedConstraints     #-}
+{-# language FunctionalDependencies    #-}
 module Generics.Kind (
   module Generics.Kind.Atom
 , module Generics.Kind.ListOfTypes
@@ -24,6 +25,7 @@ module Generics.Kind (
 , GenericK(..), Conv(..)
 , GenericS, fromS, toS
 , GenericN, fromN, toN
+, KindOf, GenericO, fromO, toO
 ) where
 
 import Data.Proxy
@@ -72,6 +74,14 @@ fromN :: forall n t f x. GenericN n t f x => t -> RepK f x
 fromN = fromK @_ @f
 toN :: forall n t f x. GenericN n t f x => RepK f x -> t
 toN = toK @_ @f
+
+class KindOf (t :: *) (f :: k) | t -> k f where
+
+type GenericO t f x = (KindOf t f, GenericK f x, x ~ (Split t f), t ~ (f :@@: x))
+fromO :: forall f t x. GenericO t f x => t -> RepK f x
+fromO = fromK @_ @f
+toO :: forall f t x. GenericO t f x => RepK f x -> t
+toO = toK @_ @f
 
 -- CONVERSION BETWEEN GHC.GENERICS AND KIND-GENERICS
 

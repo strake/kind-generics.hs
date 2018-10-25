@@ -11,6 +11,7 @@ import GHC.Generics (from, to)
 import Generics.Kind
 import Generics.Kind.Derive.Functor
 
+instance KindOf (Maybe a) Maybe
 instance GenericK Maybe (a :&&: LoT0) where
   type RepK Maybe = U1 :+: F V0
 
