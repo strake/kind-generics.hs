@@ -12,6 +12,7 @@
 {-# language FunctionalDependencies #-}
 {-# language TypeApplications       #-}
 {-# language DefaultSignatures      #-}
+{-# language AllowAmbiguousTypes    #-}
 module Generics.Kind.Derive.Functor where
 
 import Data.Proxy
@@ -37,14 +38,9 @@ class KFunctor (f :: k) (v :: Variances) (as :: LoT k) (bs :: LoT k) | f -> v wh
   kfmap :: Mappings v as bs -> f :@@: as -> f :@@: bs
 
   default
-    kfmap :: (GenericK f, GFunctor (RepK f) v as bs, SForLoT as, SForLoT bs)
+    kfmap :: (GenericK f as, GenericK f bs, GFunctor (RepK f) v as bs)
           => Mappings v as bs -> f :@@: as -> f :@@: bs
-  kfmap v = toK slot . gfmap v . fromK slot
-
-kfmap1 :: forall f t v a b.
-          (KFunctor (f :: k -> *) (v :: Variances) (a :&&: LoT0) (b :&&: LoT0))
-       => Mappings v (a :&&: LoT0) (b :&&: LoT0) -> f a -> f b
-kfmap1 v = unravel . kfmap v . ravel
+  kfmap v = toK @_ @f @bs . gfmap v . fromK @_ @f @as
 
 class GFunctor (f :: LoT k -> *) (v :: Variances) (as :: LoT k) (bs :: LoT k) where
   gfmap :: Mappings v as bs -> f as -> f bs
@@ -107,16 +103,14 @@ instance forall f x v v1 as bs.
          (KFunctor f '[v1] (Ty x as :&&: LoT0) (Ty x bs :&&: LoT0),
           GFunctorArg x v v1 as bs)
          => GFunctorArg (f :$: x) v Co as bs where
-  gfmapf _ _ v = CoM (unA0 . unArg . kfmap (gfmapf (Proxy @x) (Proxy @v1) v :^: M0) . Arg . A0)
+  gfmapf _ _ v = CoM (kfmap (gfmapf (Proxy @x) (Proxy @v1) v :^: M0))
 
 instance forall f x y v v1 v2 as bs.
          (KFunctor f '[v1, v2] (Ty x as :&&: Ty y as :&&: LoT0) (Ty x bs :&&: Ty y bs :&&: LoT0),
           GFunctorArg x v v1 as bs, GFunctorArg y v v2 as bs)
          => GFunctorArg (f :$: x :@: y) v Co as bs where
-  gfmapf _ _ v = CoM ( unA0 . unArg . unArg .
-                       kfmap (gfmapf (Proxy @x) (Proxy @v1) v :^:
-                              gfmapf (Proxy @y) (Proxy @v2) v :^: M0) . 
-                       Arg . Arg . A0 )
+  gfmapf _ _ v = CoM ( kfmap (gfmapf (Proxy @x) (Proxy @v1) v :^:
+                              gfmapf (Proxy @y) (Proxy @v2) v :^: M0) )
 
 {-
 instance forall f x y z v v1 v2 v3 as bs.

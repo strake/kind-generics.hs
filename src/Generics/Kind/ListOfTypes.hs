@@ -17,6 +17,7 @@ data LoT k where
   LoT0    ::                LoT (*)
   (:&&:)  :: k -> LoT ks -> LoT (k -> ks)
 
+{-
 data (f :: k) :@@: (tys :: LoT k) :: * where
   A0  :: { unA0  :: f } -> f :@@: LoT0
   Arg :: { unArg :: f t :@@: ts } -> f :@@: (t :&&: ts)
@@ -51,11 +52,13 @@ instance SForLoT LoT0 where
   slot = SLoT0
 instance SForLoT ts => SForLoT (t :&&: ts) where
   slot = SLoTA slot
+-}
 
-type family Apply (f :: k) (tys :: LoT k) :: * where
-  Apply f LoT0        = f
-  Apply f (a :&&: as) = Apply (f a) as
+type family (f :: k) :@@: (tys :: LoT k) :: * where
+  f :@@: LoT0        = f
+  f :@@: (a :&&: as) = f a :@@: as
 
+{-
 unravel :: f :@@: ts -> Apply f ts
 unravel (A0  x) = x
 unravel (Arg x) = unravel x
@@ -69,6 +72,7 @@ ravel = ravel' slot
 ravel' :: SLoT ts -> Apply f ts -> f :@@: ts
 ravel' SLoT0      x = A0  x
 ravel' (SLoTA ts) x = Arg (ravel' ts x)
+-}
 
 type family Split (t :: d) (f :: k) :: LoT k where
   Split t f = Split' t f LoT0
@@ -77,6 +81,7 @@ type family Split' (t :: d) (f :: k) (p :: LoT l) :: LoT k where
   Split' f     f acc = acc
   Split' (t a) f acc = Split' t f (a :&&: acc)
 
+{-
 split :: forall f t.
          (SForLoT (Split t f), t ~ Apply f (Split t f))
       => t -> f :@@: Split t f
@@ -86,3 +91,4 @@ unsplit :: forall f t.
            (SForLoT (Split t f), t ~ Apply f (Split t f))
         => f :@@: Split t f -> t
 unsplit = unravel
+-}

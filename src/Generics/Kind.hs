@@ -22,8 +22,7 @@ module Generics.Kind (
 , (:+:)(..), (:*:)(..), U1(..), M1(..)
 , F(..), (:=>:)(..), E(..)
 , GenericK(..), Conv(..)
-, SForLoT(..), GenericS, fromK', toK'
-, fromKDefault, toKDefault
+, GenericS
 ) where
 
 import Data.Proxy
@@ -46,12 +45,33 @@ data E (f :: LoT (k -> d) -> *) (x :: LoT d) where
 
 -- THE TYPE CLASS
 
+{-
 class GenericK (f :: k) where
   type RepK f :: LoT k -> *
   fromK :: SLoT x -> f :@@: x -> RepK f x
   toK   :: SLoT x -> RepK f x -> f :@@: x
+-}
 
+class GenericK (f :: k) (x :: LoT k) where
+  type RepK f :: LoT k -> *
+  
+  fromK :: f :@@: x -> RepK f x
+  default
+    fromK :: (Generic (f :@@: x), Conv (Rep (f :@@: x)) (RepK f) x)
+          => f :@@: x -> RepK f x
+  fromK = toKindGenerics . from
+
+  toK   :: RepK f x -> f :@@: x
+  default
+    toK :: (Generic (f :@@: x), Conv (Rep (f :@@: x)) (RepK f) x)
+        => RepK f x -> f :@@: x
+  toK = to . toGhcGenerics
+
+type GenericS t f x = (GenericK f x, x ~ (Split t f), t ~ (f :@@: x))
+
+{-
 type GenericS f t = (GenericK f, SForLoT (Split t f), t ~ Apply f (Split t f))
+type GenericS2 f t = (GenericK2 f (Split t f), t ~ Apply f (Split t f))
 
 fromK' :: forall f t. GenericS f t
        => t -> RepK f (Split t f)
@@ -70,6 +90,7 @@ fromKDefault = toKindGenerics . from . unravel
 toKDefault :: (Generic (Apply f x), SForLoT x, Conv (Rep (Apply f x)) (RepK f) x)
            => RepK f x -> f :@@: x
 toKDefault = ravel . to . toGhcGenerics
+-}
 
 -- CONVERSION BETWEEN GHC.GENERICS AND KIND-GENERICS
 
