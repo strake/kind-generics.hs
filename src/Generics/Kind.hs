@@ -45,13 +45,6 @@ data E (f :: LoT (k -> d) -> *) (x :: LoT d) where
 
 -- THE TYPE CLASS
 
-{-
-class GenericK (f :: k) where
-  type RepK f :: LoT k -> *
-  fromK :: SLoT x -> f :@@: x -> RepK f x
-  toK   :: SLoT x -> RepK f x -> f :@@: x
--}
-
 class GenericK (f :: k) (x :: LoT k) where
   type RepK f :: LoT k -> *
   
@@ -68,29 +61,6 @@ class GenericK (f :: k) (x :: LoT k) where
   toK = to . toGhcGenerics
 
 type GenericS t f x = (GenericK f x, x ~ (Split t f), t ~ (f :@@: x))
-
-{-
-type GenericS f t = (GenericK f, SForLoT (Split t f), t ~ Apply f (Split t f))
-type GenericS2 f t = (GenericK2 f (Split t f), t ~ Apply f (Split t f))
-
-fromK' :: forall f t. GenericS f t
-       => t -> RepK f (Split t f)
-fromK' x = fromK slot (split @f x)
-
-toK' :: forall f t. GenericS f t
-     => RepK f (Split t f) -> t
-toK' x = unsplit @f (toK slot x)
-
--- DEFAULT IMPLEMENTATIONS
-
-fromKDefault :: (Generic (Apply f x), SForLoT x, Conv (Rep (Apply f x)) (RepK f) x)
-             => f :@@: x -> RepK f x
-fromKDefault = toKindGenerics . from . unravel
-
-toKDefault :: (Generic (Apply f x), SForLoT x, Conv (Rep (Apply f x)) (RepK f) x)
-           => RepK f x -> f :@@: x
-toKDefault = ravel . to . toGhcGenerics
--}
 
 -- CONVERSION BETWEEN GHC.GENERICS AND KIND-GENERICS
 
@@ -112,9 +82,13 @@ instance (Conv f f' tys, Conv g g' tys) => Conv (f :*: g) (f' :*: g') tys where
   toGhcGenerics  (x :*: y) = toGhcGenerics  x :*: toGhcGenerics  y
   toKindGenerics (x :*: y) = toKindGenerics x :*: toKindGenerics y
 
-instance (Conv f f' tys) => Conv (M1 i c f) f' {- (M1 i c f') -} tys where
+instance {-# OVERLAPPABLE #-} (Conv f f' tys) => Conv (M1 i c f) f' tys where
   toGhcGenerics  x = M1 (toGhcGenerics  x)
   toKindGenerics (M1 x) = toKindGenerics x
+
+instance {-# OVERLAPS #-} (Conv f f' tys) => Conv (M1 i c f) (M1 i c f') tys where
+  toGhcGenerics  (M1 x) = M1 (toGhcGenerics  x)
+  toKindGenerics (M1 x) = M1 (toKindGenerics x)
 
 instance (k ~ Ty t tys, Conv f f' tys)
          => Conv (k GG.:=>: f) (t :=>: f') tys where
