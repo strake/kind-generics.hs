@@ -22,7 +22,8 @@ module Generics.Kind (
 , (:+:)(..), (:*:)(..), U1(..), M1(..)
 , F(..), (:=>:)(..), E(..)
 , GenericK(..), Conv(..)
-, GenericS
+, GenericS, fromS, toS
+, GenericN, fromN, toN
 ) where
 
 import Data.Proxy
@@ -61,6 +62,16 @@ class GenericK (f :: k) (x :: LoT k) where
   toK = to . toGhcGenerics
 
 type GenericS t f x = (GenericK f x, x ~ (Split t f), t ~ (f :@@: x))
+fromS :: forall f t x. GenericS t f x => t -> RepK f x
+fromS = fromK @_ @f
+toS :: forall f t x. GenericS t f x => RepK f x -> t
+toS = toK @_ @f
+
+type GenericN n t f x = (GenericK f x, 'TyEnv f x ~ (SplitAt n t), t ~ (f :@@: x))
+fromN :: forall n t f x. GenericN n t f x => t -> RepK f x
+fromN = fromK @_ @f
+toN :: forall n t f x. GenericN n t f x => RepK f x -> t
+toN = toK @_ @f
 
 -- CONVERSION BETWEEN GHC.GENERICS AND KIND-GENERICS
 

@@ -39,7 +39,7 @@ class KFunctor (f :: k) (v :: Variances) (as :: LoT k) (bs :: LoT k) | f -> v wh
   default
     kfmap :: (GenericK f as, GenericK f bs, GFunctor (RepK f) v as bs)
           => Mappings v as bs -> f :@@: as -> f :@@: bs
-  kfmap v = toK @_ @f @bs . gfmap v . fromK @_ @f @as
+  kfmap v = toK @k @f @bs . gfmap v . fromK @k @f @as
 
 class GFunctor (f :: LoT k -> *) (v :: Variances) (as :: LoT k) (bs :: LoT k) where
   gfmap :: Mappings v as bs -> f as -> f bs
