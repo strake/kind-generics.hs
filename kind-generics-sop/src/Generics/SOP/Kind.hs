@@ -97,13 +97,36 @@ class ConvSum (gg :: * -> *) (kc :: DataType d) (tys :: LoT d) where
   toGhcGenericsS  :: RepK kc tys -> gg a
   toKindGenericsS :: gg a -> RepK kc tys
 
-instance {-# OVERLAPPABLE #-} ConvConstructor f f' tys
-         => ConvSum f '[ f' ] tys where
+instance ConvSum f f' tys
+         => ConvSum (M1 i c f) f' tys where
+  toGhcGenericsS x = M1 (toGhcGenericsS x)
+  toKindGenericsS (M1 x) = toKindGenericsS x
+
+instance ConvConstructor (c GG.:=>: f) f' tys
+         => ConvSum (c GG.:=>: f) '[ f' ] tys where
   toGhcGenericsS  (Z x) = toGhcGenericsC x
   toGhcGenericsS  (S _) = error "this should never happen!"
   toKindGenericsS x = Z (toKindGenericsC x)
 
-instance {-# OVERLAPS #-} (ConvConstructor f f' tys, ConvSum gs gs' tys)
+instance ConvConstructor (f :*: gs) f' tys
+         => ConvSum (f :*: gs) '[ f' ] tys where
+  toGhcGenericsS  (Z x) = toGhcGenericsC x
+  toGhcGenericsS  (S _) = error "this should never happen!"
+  toKindGenericsS x = Z (toKindGenericsC x)
+
+instance ConvConstructor U1 f' tys
+         => ConvSum U1 '[ f' ] tys where
+  toGhcGenericsS  (Z x) = toGhcGenericsC x
+  toGhcGenericsS  (S _) = error "this should never happen!"
+  toKindGenericsS x = Z (toKindGenericsC x)
+
+instance ConvConstructor (K1 i k) f' tys
+         => ConvSum (K1 i k) '[ f' ] tys where
+  toGhcGenericsS  (Z x) = toGhcGenericsC x
+  toGhcGenericsS  (S _) = error "this should never happen!"
+  toKindGenericsS x = Z (toKindGenericsC x)
+
+instance (ConvConstructor f f' tys, ConvSum gs gs' tys)
          => ConvSum (f :+: gs) (f' ': gs') tys where
   toGhcGenericsS  (Z x) = L1 (toGhcGenericsC x)
   toGhcGenericsS  (S x) = R1 (toGhcGenericsS x)
@@ -116,8 +139,23 @@ class ConvConstructor (gg :: * -> *) (kb :: Branch d) (tys :: LoT d) where
   toGhcGenericsC  :: NB tys kb -> gg a
   toKindGenericsC :: gg a -> NB tys kb
 
-instance {-# OVERLAPPABLE #-} ConvProduct f f' tys
-         => ConvConstructor f ('[] ':=>: f') tys where
+instance ConvConstructor f f' tys
+         => ConvConstructor (M1 i c f) f' tys where
+  toGhcGenericsC x = M1 (toGhcGenericsC x)
+  toKindGenericsC (M1 x) = toKindGenericsC x
+
+instance ConvProduct U1 f' tys
+         => ConvConstructor U1 ('[] ':=>: f') tys where
+  toGhcGenericsC  (F_ x) = toGhcGenericsP x
+  toKindGenericsC x = F_ (toKindGenericsP x)
+
+instance ConvProduct (K1 i k) f' tys
+         => ConvConstructor (K1 i k) ('[] ':=>: f') tys where
+  toGhcGenericsC  (F_ x) = toGhcGenericsP x
+  toKindGenericsC x = F_ (toKindGenericsP x)
+
+instance ConvProduct (f :*: gs) f' tys
+         => ConvConstructor (f :*: gs) ('[] ':=>: f') tys where
   toGhcGenericsC  (F_ x) = toGhcGenericsP x
   toKindGenericsC x = F_ (toKindGenericsP x)
 
@@ -132,11 +170,35 @@ class ConvProduct (gg :: * -> *) (kp :: Fields d) (tys :: LoT d) where
   toGhcGenericsP  :: NP (NA tys) kp -> gg a
   toKindGenericsP :: gg a -> NP (NA tys) kp
 
+instance ConvProduct f f' tys
+         => ConvProduct (M1 i c f) f' tys where
+  toGhcGenericsP x = M1 (toGhcGenericsP x)
+  toKindGenericsP (M1 x) = toKindGenericsP x
+
 instance ConvProduct U1 '[] tys where
   toGhcGenericsP  Nil = U1
   toKindGenericsP U1  = Nil
 
-instance (k ~ Ty f' tys, ConvProduct gs gs' tys)
-         => ConvProduct ((K1 p k) :*: gs) (f' ': gs') tys where
-  toGhcGenericsP  (A_ x :*  y) = K1 x :*: toGhcGenericsP  y
-  toKindGenericsP (K1 x :*: y) = A_ x :*  toKindGenericsP y
+instance ConvAtom (K1 i k) f' tys
+         => ConvProduct (K1 i k) '[ f' ] tys where
+  toGhcGenericsP  (x :* Nil) = toGhcGenericsA x
+  toKindGenericsP x = toKindGenericsA x :* Nil
+
+instance (ConvAtom f f' tys, ConvProduct gs gs' tys)
+         => ConvProduct (f :*: gs) (f' ': gs') tys where
+  toGhcGenericsP  (x :*  y) = toGhcGenericsA  x :*: toGhcGenericsP  y
+  toKindGenericsP (x :*: y) = toKindGenericsA x :*  toKindGenericsP y
+
+-- Atoms
+
+class ConvAtom (gg :: * -> *) (ka :: Atom d (*)) (tys :: LoT d) where
+  toGhcGenericsA  :: NA tys ka -> gg a
+  toKindGenericsA :: gg a -> NA tys ka
+
+instance (k ~ (Ty t tys)) => ConvAtom (K1 i k) t tys where
+  toGhcGenericsA  (A_ x) = K1 x
+  toKindGenericsA (K1 x) = A_ x
+
+instance ConvAtom f f' tys => ConvAtom (M1 i p f) f' tys where
+  toGhcGenericsA x = M1 (toGhcGenericsA x)
+  toKindGenericsA (M1 x) = toKindGenericsA x
