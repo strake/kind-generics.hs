@@ -43,17 +43,18 @@ data Branch (d :: k) where
   E      :: Branch (p -> d) -> Branch d
   (:=>:) :: Constraints d -> Fields d -> Branch d
 
-class AllFields (c :: * -> Constraint) (d :: DataType k) (tys :: LoT k)
-instance AllFields c '[] tys
-instance AllFieldsB c b tys => AllFields c (b ': bs) tys
+type family AllFields (c :: * -> Constraint) (d :: DataType k) (tys :: LoT k) :: Constraint where
+  AllFields c '[] tys = ()
+  AllFields c (b ': bs) tys = (AllFieldsB c b tys, AllFields c bs tys)
 
-class AllFieldsB (c :: * -> Constraint) (d :: Branch k) (tys :: LoT k)
-instance (forall t. AllFieldsB c b (t ':&&: tys)) => AllFieldsB c ('E b) tys
-instance (Satisfies cs tys => AllFieldsP c fs tys) => AllFieldsB c (cs ':=>: fs) tys
+type family AllFieldsB (c :: * -> Constraint) (d :: Branch k) (tys :: LoT k) :: Constraint where
+  -- AllFieldsB c ('E b) tys = (forall t. AllFieldsB c b (t ':&&: tys))
+  -- AllFieldsB c (cs ':=>: fs) tys = (Satisfies cs tys => AllFieldsP c fs tys)
+  AllFieldsB c (cs ':=>: fs) tys = AllFieldsP c fs tys
 
-class AllFieldsP (c :: * -> Constraint) (d :: Fields k) (tys :: LoT k)
-instance AllFieldsP c '[] tys
-instance (c (Ty f tys), AllFieldsP c fs tys) => AllFieldsP c (f ': fs) tys
+type family AllFieldsP (c :: * -> Constraint) (d :: Fields k) (tys :: LoT k) :: Constraint where
+  AllFieldsP c '[] tys = ()
+  AllFieldsP c (f ': fs) tys = (c (Ty f tys), AllFieldsP c fs tys)
 
 -- INTERPRETATIONS
 
