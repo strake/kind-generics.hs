@@ -3,7 +3,7 @@
 {-# language TypeFamilies  #-}
 {-# language DataKinds     #-}
 {-# language PolyKinds     #-}
-module Generics.Kind.Atom where
+module Data.PolyKinded.Atom where
 
 import Data.PolyKinded
 

@@ -8,7 +8,7 @@
 {-# language TypeApplications       #-}
 {-# language AllowAmbiguousTypes    #-}
 {-# language TypeFamilies           #-}
-module Data.Functor.PolyKinded where
+module Data.PolyKinded.Functor where
 
 import Data.PolyKinded
 

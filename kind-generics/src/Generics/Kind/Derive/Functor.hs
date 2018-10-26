@@ -16,7 +16,7 @@
 {-# language TypeFamilies           #-}
 module Generics.Kind.Derive.Functor where
 
-import Data.Functor.PolyKinded
+import Data.PolyKinded.Functor
 import Data.Proxy
 
 import Generics.Kind

@@ -18,7 +18,7 @@
 {-# language QuantifiedConstraints     #-}
 module Generics.Kind (
   module Data.PolyKinded
-, module Generics.Kind.Atom
+, module Data.PolyKinded.Atom
 , (:+:)(..), (:*:)(..), U1(..), M1(..)
 , F(..), (:=>:)(..), E(..)
 , GenericK(..), Conv(..)
@@ -28,11 +28,10 @@ module Generics.Kind (
 ) where
 
 import Data.PolyKinded
+import Data.PolyKinded.Atom
 import Data.Kind
 import GHC.Generics.Extra hiding ((:=>:))
 import qualified GHC.Generics.Extra as GG
-
-import Generics.Kind.Atom
 
 newtype F (t :: Atom d (*)) (x :: LoT d) = F { unF :: Ty t x }
 deriving instance Show (Ty t x) => Show (F t x)

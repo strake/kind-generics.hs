@@ -15,7 +15,6 @@ extra-source-files:  CHANGELOG.md
 
 library
   exposed-modules:     GHC.Generics.Extra,
-                       Generics.Kind.Atom,
                        Generics.Kind,
                        Generics.Kind.Examples,
                        Generics.Kind.Derive.Eq,
