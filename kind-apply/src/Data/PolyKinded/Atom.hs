@@ -1,10 +1,12 @@
-{-# language GADTs         #-}
-{-# language TypeOperators #-}
-{-# language TypeFamilies  #-}
-{-# language DataKinds     #-}
-{-# language PolyKinds     #-}
+{-# language GADTs           #-}
+{-# language TypeOperators   #-}
+{-# language TypeFamilies    #-}
+{-# language DataKinds       #-}
+{-# language PolyKinds       #-}
+{-# language ConstraintKinds #-}
 module Data.PolyKinded.Atom where
 
+import Data.Kind
 import Data.PolyKinded
 
 data TyVar d k where
@@ -35,3 +37,7 @@ type family Ty (t :: Atom d k) (tys :: LoT d) :: k where
   Ty ('Var ('VS v)) (t ':&&: ts) = Ty ('Var v) ts
   Ty ('Kon t)       tys          = t
   Ty (f ':@: x)     tys          = (Ty f tys) (Ty x tys)
+
+type family Satisfies (cs :: [Atom d Constraint]) (tys :: LoT d) :: Constraint where
+  Satisfies '[]       tys = ()
+  Satisfies (c ': cs) tys = (Ty c tys, Satisfies cs tys)

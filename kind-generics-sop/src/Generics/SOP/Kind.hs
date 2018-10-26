@@ -18,6 +18,7 @@ module Generics.SOP.Kind (
   module Data.PolyKinded
 , module Data.PolyKinded.Atom
 , DataType, Branch(..), Constraints, Fields
+, AllFields, AllFieldsB, AllFieldsP
 , NS(..), NB(..), NP(..), NA(..)
 , RepK, GenericK(..)
 , GenericS, fromS, toS
@@ -41,6 +42,18 @@ type Fields      d = [ Atom d (*) ]
 data Branch (d :: k) where
   E      :: Branch (p -> d) -> Branch d
   (:=>:) :: Constraints d -> Fields d -> Branch d
+
+class AllFields (c :: * -> Constraint) (d :: DataType k) (tys :: LoT k)
+instance AllFields c '[] tys
+instance AllFieldsB c b tys => AllFields c (b ': bs) tys
+
+class AllFieldsB (c :: * -> Constraint) (d :: Branch k) (tys :: LoT k)
+instance (forall t. AllFieldsB c b (t ':&&: tys)) => AllFieldsB c ('E b) tys
+instance (Satisfies cs tys => AllFieldsP c fs tys) => AllFieldsB c (cs ':=>: fs) tys
+
+class AllFieldsP (c :: * -> Constraint) (d :: Fields k) (tys :: LoT k)
+instance AllFieldsP c '[] tys
+instance (c (Ty f tys), AllFieldsP c fs tys) => AllFieldsP c (f ': fs) tys
 
 -- INTERPRETATIONS
 
