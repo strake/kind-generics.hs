@@ -15,7 +15,6 @@ extra-source-files:  CHANGELOG.md
 
 library
   exposed-modules:     GHC.Generics.Extra,
-                       Generics.Kind.ListOfTypes,
                        Generics.Kind.Atom,
                        Generics.Kind,
                        Generics.Kind.Examples,
@@ -23,6 +22,7 @@ library
                        Generics.Kind.Derive.Functor
   -- other-modules:
   -- other-extensions:
-  build-depends:       base >=4.12 && <5
+  build-depends:       base >=4.12 && <5, kind-apply
   hs-source-dirs:      src
   default-language:    Haskell2010
+  ghc-options:         -Wall

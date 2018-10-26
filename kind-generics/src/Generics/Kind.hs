@@ -17,8 +17,8 @@
 {-# language AllowAmbiguousTypes       #-}
 {-# language QuantifiedConstraints     #-}
 module Generics.Kind (
-  module Generics.Kind.Atom
-, module Generics.Kind.ListOfTypes
+  module Data.PolyKinded
+, module Generics.Kind.Atom
 , (:+:)(..), (:*:)(..), U1(..), M1(..)
 , F(..), (:=>:)(..), E(..)
 , GenericK(..), Conv(..)
@@ -27,13 +27,12 @@ module Generics.Kind (
 , GenericO, fromO, toO
 ) where
 
-import Data.Proxy
+import Data.PolyKinded
 import Data.Kind
 import GHC.Generics.Extra hiding ((:=>:))
 import qualified GHC.Generics.Extra as GG
 
 import Generics.Kind.Atom
-import Generics.Kind.ListOfTypes
 
 newtype F (t :: Atom d (*)) (x :: LoT d) = F { unF :: Ty t x }
 deriving instance Show (Ty t x) => Show (F t x)
@@ -43,7 +42,7 @@ data (:=>:) (c :: Atom d Constraint) (f :: LoT d -> *) (x :: LoT d) where
 
 data E (f :: LoT (k -> d) -> *) (x :: LoT d) where
   E :: forall (t :: k) d (f :: LoT (k -> d) -> *) (x :: LoT d)
-     . f (t :&&: x) -> E f x
+     . f (t ':&&: x) -> E f x
 
 -- THE TYPE CLASS
 
