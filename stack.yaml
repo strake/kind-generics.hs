@@ -1,0 +1,5 @@
+packages:
+- kind-apply/
+- kind-generics/
+extra-deps: []
+resolver: nightly-2018-10-26
