@@ -15,8 +15,8 @@ extra-source-files:  CHANGELOG.md
 
 library
   exposed-modules:     Generics.SOP.Kind,
-                       Generics.SOP.Kind.Examples
-                       -- Generics.Kind.SOP.Derive.Eq,
+                       Generics.SOP.Kind.Examples,
+                       Generics.SOP.Kind.Derive.Eq
                        -- Generics.Kind.SOP. Derive.Functor
   -- other-modules:
   -- other-extensions:
