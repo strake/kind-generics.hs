@@ -1,2 +1,3 @@
 packages: kind-apply/
           kind-generics/
+          kind-generics-sop/
