@@ -10,7 +10,18 @@
 {-# language FlexibleContexts      #-}
 {-# language QuantifiedConstraints #-}
 {-# language UndecidableInstances  #-}
-module Generics.SOP.Kind where
+{-# language ScopedTypeVariables   #-}
+{-# language TypeApplications      #-}
+{-# language DefaultSignatures     #-}
+{-# language AllowAmbiguousTypes   #-}
+module Generics.SOP.Kind (
+  DataType, Branch(..), Constraints, Fields
+, NS(..), NB(..), NP(..), NA(..)
+, RepK, GenericK(..)
+, GenericS, fromS, toS
+, GenericN, fromN, toN
+, GenericO, fromO, toO
+) where
 
 import Data.Kind
 import Data.PolyKinded hiding (Z, S)
@@ -44,19 +55,37 @@ type RepK (d :: DataType k) (tys :: LoT k) = NS (NB tys) d
 -- THE TYPE CLASS
 
 class GenericK (f :: k) (x :: LoT k) where
-  type RepK f :: DataType k
+  type CodeK f :: DataType k
   
-  fromK :: f :@@: x -> RepK f x
+  fromK :: f :@@: x -> RepK (CodeK f) x
   default
-    fromK :: (Generic (f :@@: x), Conv (Rep (f :@@: x)) (RepK f) x)
-          => f :@@: x -> RepK f x
-  fromK = toKindGenerics . from
+    fromK :: (Generic (f :@@: x), ConvSum (Rep (f :@@: x)) (CodeK f) x)
+          => f :@@: x -> RepK (CodeK f) x
+  fromK = toKindGenericsS . from
 
-  toK   :: RepK f x -> f :@@: x
+  toK   :: RepK (CodeK f) x -> f :@@: x
   default
-    toK :: (Generic (f :@@: x), Conv (Rep (f :@@: x)) (RepK f) x)
-        => RepK f x -> f :@@: x
-  toK = to . toGhcGenerics
+    toK :: (Generic (f :@@: x), ConvSum (Rep (f :@@: x)) (CodeK f) x)
+        => RepK (CodeK f) x -> f :@@: x
+  toK = to . toGhcGenericsS
+
+type GenericS t f x = (GenericK f x, x ~ (Split t f), t ~ (f :@@: x))
+fromS :: forall f t x. GenericS t f x => t -> RepK (CodeK f) x
+fromS = fromK @_ @f
+toS :: forall f t x. GenericS t f x => RepK (CodeK f) x -> t
+toS = toK @_ @f
+
+type GenericN n t f x = (GenericK f x, 'TyEnv f x ~ (SplitAt n t), t ~ (f :@@: x))
+fromN :: forall n t f x. GenericN n t f x => t -> RepK (CodeK f) x
+fromN = fromK @_ @f
+toN :: forall n t f x. GenericN n t f x => RepK (CodeK f) x -> t
+toN = toK @_ @f
+
+type GenericO t f x = (Break t f x, GenericK f x)
+fromO :: forall f t x. GenericO t f x => t -> RepK (CodeK f) x
+fromO = fromK @_ @f
+toO :: forall f t x. GenericO t f x => RepK (CodeK f) x -> t
+toO = toK @_ @f
 
 -- CONVERSION
 
@@ -94,7 +123,6 @@ instance (c ~ (Ty c' tys), ConvConstructor f (cs ':=>: f') tys)
          => ConvConstructor (c GG.:=>: f) ((c' ': cs) ':=>: f') tys where
   toGhcGenericsC  (C_ x) = SuchThat (toGhcGenericsC x)
   toKindGenericsC (SuchThat x) = C_ (toKindGenericsC x)
-
 
 -- Products
 
