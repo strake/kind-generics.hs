@@ -14,8 +14,8 @@ build-type:          Simple
 extra-source-files:  CHANGELOG.md
 
 library
-  exposed-modules:     Generics.SOP.Kind
-                       -- Generics.Kind.SOP.Examples,
+  exposed-modules:     Generics.SOP.Kind,
+                       Generics.SOP.Kind.Examples
                        -- Generics.Kind.SOP.Derive.Eq,
                        -- Generics.Kind.SOP. Derive.Functor
   -- other-modules:

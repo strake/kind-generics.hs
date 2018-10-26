@@ -15,7 +15,9 @@
 {-# language DefaultSignatures     #-}
 {-# language AllowAmbiguousTypes   #-}
 module Generics.SOP.Kind (
-  DataType, Branch(..), Constraints, Fields
+  module Data.PolyKinded
+, module Data.PolyKinded.Atom
+, DataType, Branch(..), Constraints, Fields
 , NS(..), NB(..), NP(..), NA(..)
 , RepK, GenericK(..)
 , GenericS, fromS, toS
