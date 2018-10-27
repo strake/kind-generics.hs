@@ -43,7 +43,7 @@ instance (GFunctor f v as bs, GFunctor g v as bs)
          => GFunctor (f :*: g) v as bs where
   gfmap v (x :*: y) = gfmap v x :*: gfmap v y
 
-instance (Ty c as => GFunctor f v as bs, Ty c bs)
+instance (Ty c as => GFunctor f v as bs, {- Ty c as => -} Ty c bs)
          => GFunctor (c :=>: f) v as bs where
   gfmap v (C x) = C (gfmap v x)
 
