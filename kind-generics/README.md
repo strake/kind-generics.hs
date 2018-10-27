@@ -135,7 +135,41 @@ instance GenericK Tree (a :&&: LoT0) where
 
 On the other hand, separating the atom from the list of types gives us the ability to interpret the same atom with different list of types. This is paramount to classes like `Functor`, in which the same type constructor is applied to different type variables.
 
+## Functors for GADTS: `(:=>:)` and `E`
 
-## Functor for GADTS: `(:=>:)` and `E`
+Generalised Algebraic Data Types, GADTs for short, extend the capabilities of Haskell data types. Once the extension is enabled, constructor gain the ability to constrain the set of allowed types, and to introduce existential types. Here is an extension of the previously-defined `Tree` type to include an annotation in every leaf, each of them with possibly a different type, and also require `Show` for the `a`s:
 
-## Implementing a generic operation for GADTs
+```haskell
+data WeirdTree a where
+  WeirdBranch :: WeirdTree a -> WeirdTree a -> WeirdTree a 
+  WeirdLeaf   :: Show a => t -> a -> WeirdTree a
+```
+
+The family of pattern functors `U1`, `F`, `(:+:)`, and `(:*:)` is not enough. Let us see what other things we use in the representation of `WeirdTree`:
+
+```haskell
+instance GenericK WeirdTree (a ':&&: 'LoT0) where
+  type RepK WeirdTree
+    = F (WeirdTree :$: V0) :*: F (WeirdTree :$: V0)
+      :+: E ((Show :$: V1) :=>: (F V0 :*: F V1))
+```
+
+Here the `(:=>:)` pattern functor plays the role of `=>` in the definition of the data type. It reuses the same notion of atoms from `F`, but requiring those atoms to give back a constraint instead of a ground type.
+
+But wait a minute! You have just told me that the first type variable is represented by `V0`, and in the representation above `Show a` is transformed into `Show :$: V1`, what is going on? This change stems from `E`, which represents existential quantification. Whenever you go inside an `E`, you gain a new type variable in your list of types. This new variable is put *at the front* of the list of types, shifting all the other one position. In the example above, inside the `E` the atom `V0` points to `t`, and `V1` points to `a`. This approach implies that inside nested existentials the innermost variable corresponds to head of the list of types `V0`.
+
+Unfortunately, at this point you need to write your own conversion functions if you use any of these extended features (pull requests implementing it in Template Haskell are more than welcome).
+
+```haskell
+instance GenericK WeirdTree (a ':&&: 'LoT0) where
+  type RepK WeirdTree = ...
+
+  fromK (WeirdBranch l r) = L1 $         F l :*: F r
+  fromK (WeirdLeaf   a x) = R1 $ E $ C $ F a :*: F x
+
+  toK ...
+```
+
+If you have ever done this work in `GHC.Generics`, there is not a big step. You just need to apply the `E` and `C` constructor every time there is an existential or constraint, respectively. However, since the additional information required by those types is implicitly added by the compiler, you do not need to write anything else.
+
+## Implementing a generic operation with `kind-generics`
