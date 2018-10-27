@@ -15,8 +15,8 @@ build-type:          Simple
 library
   exposed-modules:     Generics.SOP.Kind,
                        Generics.SOP.Kind.Examples,
-                       Generics.SOP.Kind.Derive.Eq
-                       -- Generics.Kind.SOP. Derive.Functor
+                       Generics.SOP.Kind.Derive.Eq,
+                       Generics.SOP.Kind.Derive.Functor
   -- other-modules:
   -- other-extensions:
   build-depends:       base >=4.12 && <5, kind-apply, sop-core

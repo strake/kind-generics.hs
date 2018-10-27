@@ -19,6 +19,7 @@ module Generics.SOP.Kind (
 , module Data.PolyKinded.Atom
 , DataType, Branch(..), Constraints, Fields
 , AllFields, AllFieldsB, AllFieldsP
+, AllAtoms, AllAtomsB, AllAtomsP
 , NS(..), NB(..), NP(..), NA(..)
 , RepK, GenericK(..)
 , GenericS, fromS, toS
@@ -43,6 +44,8 @@ data Branch (d :: k) where
   E      :: Branch (p -> d) -> Branch d
   (:=>:) :: Constraints d -> Fields d -> Branch d
 
+-- CONSTRAINTS
+
 type family AllFields (c :: * -> Constraint) (d :: DataType k) (tys :: LoT k) :: Constraint where
   AllFields c '[] tys = ()
   AllFields c (b ': bs) tys = (AllFieldsB c b tys, AllFields c bs tys)
@@ -55,6 +58,18 @@ type family AllFieldsB (c :: * -> Constraint) (d :: Branch k) (tys :: LoT k) :: 
 type family AllFieldsP (c :: * -> Constraint) (d :: Fields k) (tys :: LoT k) :: Constraint where
   AllFieldsP c '[] tys = ()
   AllFieldsP c (f ': fs) tys = (c (Ty f tys), AllFieldsP c fs tys)
+
+type family AllAtoms (c :: Atom k (*) -> Constraint) (d :: DataType k) :: Constraint where
+  AllAtoms c '[] = ()
+  AllAtoms c (b ': bs) = (AllAtomsB c b, AllAtoms c bs)
+
+type family AllAtomsB (c :: Atom k (*) -> Constraint) (d :: Branch k) :: Constraint where
+  -- Existentials and implications should be as above
+  AllAtomsB c (cs ':=>: fs) = AllAtomsP c fs
+
+type family AllAtomsP (c :: Atom k (*) -> Constraint) (d :: Fields k) :: Constraint where
+  AllAtomsP c '[] = ()
+  AllAtomsP c (f ': fs) = (c f, AllAtomsP c fs)
 
 -- INTERPRETATIONS
 
