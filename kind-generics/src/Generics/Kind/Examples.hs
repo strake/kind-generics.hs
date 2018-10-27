@@ -4,11 +4,14 @@
 {-# language MultiParamTypeClasses #-}
 {-# language FlexibleInstances     #-}
 {-# language GADTs                 #-}
+{-# language DeriveGeneric         #-}
 module Generics.Kind.Examples where
 
 import Data.PolyKinded.Functor
+import GHC.Generics (Generic)
 
 import Generics.Kind
+import Generics.Kind.Derive.Eq
 import Generics.Kind.Derive.Functor
 
 -- Obtained from Generic
@@ -19,6 +22,24 @@ instance GenericK Maybe (a ':&&: 'LoT0) where
 
 instance KFunctor Maybe '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
   kfmap = kfmapDefault
+
+-- From the docs
+
+data Tree a = Branch (Tree a) (Tree a) | Leaf a
+            deriving Generic
+
+instance HeadOf (Tree a) Tree
+instance GenericK Tree (a ':&&: 'LoT0) where
+  type RepK Tree = F (Tree :$: V0) :*: F (Tree :$: V0) :+: F V0
+
+instance Eq a => Eq (Tree a) where
+  (==) = geq'
+
+instance KFunctor Tree '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
+  kfmap = kfmapDefault
+
+instance Functor Tree where
+  fmap = fmapDefault
 
 -- Hand-written instance
 
