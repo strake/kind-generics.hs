@@ -120,7 +120,7 @@ This bridge is used in the first of the pattern functors that `kind-generics` ad
 
 ```haskell
 newtype F  (t :: Atom d (*)) (x :: LoT d) = F { unF :: Ty t x }
-newtype K1 i p (t ::  *) = K1 { unK1 :: t }
+newtype K1 i (t ::  *) = K1 { unK1 :: t }
 ```
 
 At the term level there is almost no difference in the usage, except for the fact that fields are wrapped in the `F` constructor instead of `K1`.
@@ -173,3 +173,67 @@ instance GenericK WeirdTree (a ':&&: 'LoT0) where
 If you have ever done this work in `GHC.Generics`, there is not a big step. You just need to apply the `E` and `C` constructor every time there is an existential or constraint, respectively. However, since the additional information required by those types is implicitly added by the compiler, you do not need to write anything else.
 
 ## Implementing a generic operation with `kind-generics`
+
+The last stop in our journey through `kind-generics` is being able to implement a generic operation. At this point we assume that the reader is comfortable with the definition of generic operations using `GHC.Generics`, so only the differences with that style are pointed out.
+
+Take an operation like `Show`. Using `GHC.Generics` style, you create a type class whose instances are the corresponding pattern functors:
+
+```haskell
+class GShow (f :: * -> *) where
+  gshow :: f x -> String
+
+instance GShow U1 ...
+instance Show t => GShow (K1 i t) ...
+instance (GShow f, GShow g) => GShow (f :+: g) ...
+instance (GShow f, GShow g) => GShow (f :*: g) ...
+```
+
+When using `kind-generics`, the type class needs to feature the separation between the head and its type arguments, in a similar way to `GenericK`. In this case, that means extending the class with a new parameter, and reworking the basic cases to include that argument.
+
+```haskell
+class GShow (f :: LoT k -> *) (x :: LoT k) where
+  gshow :: f :@@: x -> String
+
+instance GShow U1 x ...
+instance (GShow f x, GShow g x) => GShow (f :+: g) x ...
+instance (GShow f x, GShow g x) => GShow (f :*: g) x ...
+```
+
+Now we have the three new constructors. Let us start with `F atom`: when is it `Show`able? Whenever the interpretation of the atom, with the given list of types, satisfies the `Show` constraint. We can use the type family `Ty` to express this fact:
+
+```haskell
+instance (Show (Ty a x)) => GShow (F a) x where
+  gshow (F x) = show x
+```
+
+In the case of existential constraints we do not need to enforce any additional constraints. However, we need to extend our list of types with a new one for the existential. We can do that using the `QuantifiedConstraints` extension introduced in GHC 8.6:
+
+```haskell
+{-# language QuantifiedConstraints #-}
+
+instance (forall t. Show f (t :&&: x)) => GShow (E f) x where
+  gshow (E x) = gshow x
+```
+
+The most interesting case is the one for constraints. If we have a constraint in a constructor, we know that by pattern matching on it we can use the constraint. In other words, we are allowed to assume that the constraint at the left-hand side of `(:=>:)` holds when trying to decide whether `GShow` does. This is again allowed by the `QuantifiedConstraints` extension:
+
+```haskell
+{-# language QuantifiedConstraints #-}
+
+instance (Ty c x => GShow f x) => GShow (c :=>: f) x where
+  gshow (C x) = gshow x
+```
+
+Note that sometimes we cannot implement a generic operation for every GADT. One example is generic equality (which you can find in the module `Generics.Kind.Derive.Eq`): when faced with two values of a constructor with an existential, we cannot move forward, since we have no way of knowing if the types enclosed by each value are the same or not.
+
+## Conclusion and limitations
+
+The `kind-generics` library extends the support for data type-generic programming from `GHC.Generics` to account for kinds different from `*`  and `* -> *` and for GADTs. We have tried to reuse as much information as possible from what the compiler already gives us for free, in particular you can obtain a `GenericK` instance if you already have a `Generic` one.
+
+Although we can now express a larger amount of types and operations, not *all* Haskell data types are expressible in this language. In particular, we cannot have *dependent* kinds, like in the following data type:
+
+```haskell
+data Proxy k (d :: k) = Proxy
+```
+
+because the kind of the second argument `d` refers to the first argument `k`.
