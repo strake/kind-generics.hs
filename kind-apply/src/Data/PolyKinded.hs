@@ -22,21 +22,21 @@ type family (f :: k) :@@: (tys :: LoT k) :: * where
   f :@@: 'LoT0        = f
   f :@@: (a ':&&: as) = f a :@@: as
 
-type Split (t :: d) (f :: k) = Split' t f 'LoT0
-type family Split' (t :: d) (f :: k) (p :: LoT l) :: LoT k where
-  Split' f     f acc = acc
-  Split' (t a) f acc = Split' t f (a ':&&: acc)
+type SplitF (t :: d) (f :: k) = SplitF' t f 'LoT0
+type family SplitF' (t :: d) (f :: k) (p :: LoT l) :: LoT k where
+  SplitF' f     f acc = acc
+  SplitF' (t a) f acc = SplitF' t f (a ':&&: acc)
 
 data Nat = Z | S Nat
 
 data TyEnv where
   TyEnv :: forall k. k -> LoT k -> TyEnv
 
-type family SplitAt (n :: Nat) t :: TyEnv where 
-  SplitAt n t = SplitAt' n t 'LoT0
-type family SplitAt' (n :: Nat) (t :: d) (p :: LoT d) :: TyEnv where
-  SplitAt' 'Z     t            acc = 'TyEnv t acc
-  SplitAt' ('S n) (t (a :: l)) acc = SplitAt' n t (a ':&&: acc)
+type family SplitN (n :: Nat) t :: TyEnv where 
+  SplitN n t = SplitN' n t 'LoT0
+type family SplitN' (n :: Nat) (t :: d) (p :: LoT d) :: TyEnv where
+  SplitN' 'Z     t            acc = 'TyEnv t acc
+  SplitN' ('S n) (t (a :: l)) acc = SplitN' n t (a ':&&: acc)
 
-class HeadOf t (f :: k) | t -> k f where
-type Break t f x = (HeadOf t f, x ~ Split t f, t ~ (f :@@: x))
+class (x ~ SplitF t f, t ~ (f :@@: x))
+      => Split t (f :: k) (x :: LoT k) | t -> k f x

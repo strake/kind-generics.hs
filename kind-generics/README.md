@@ -31,7 +31,7 @@ In this case we have two constructors, separated by `(:+:)`. The first construct
 The other piece of information we need to give `GenericK` is how to separate the type constructor from its arguments. The first line of the instance always takes the name of the type, and then a *list of types* representing each of the arguments. In this case there is only one argument, and thus the list has only one element. In order to get better type inference you might also add the following declaration:
 
 ```haskell
-instance HeadOf (Tree a) Tree
+instance Split (Tree a) Tree (a :&&: LoT0)
 ```
 
 You can finally use the functionality from `kind-generics` and derive some type classes automatically:
@@ -80,6 +80,16 @@ Int :&&: [] :&&: LoT0      ::  LoT (* -> (* -> *) -> *)
 ```
 
 The application operator `(:@@:)` only allows us to apply a list of types of kind `k` to types constructors of the same kind. The shared variable in the head of the type class enforces this invariant also in our generic descriptions.
+
+### Helper classes: `GenericS`, `GenericF`, `GenericN`
+
+If you want to turn a value into its generic representation, the `fromK` method of the `GenericK` class should be enough. Alas, that is a hard nut to crack for GHC's inference engine. Imagine you call `fromK (Left True)`: should it break the type `Either Bool a` into `Either :@@: (Bool :&&: a :&&: LoT0)`, or maybe into `Either Bool :@@: (a :&&: LoT0)`? In principle, it is possible that even *both* instances exist, although it does not make sense in the context of this library.
+
+It turns out that the interface provided by `GenericK` is very helpful for those writing conversion from and to generic representations, but not so much for those using `fromK` and `toK`. For that reason, `kind-generics` provides three different extensions to `GenericK` depending on how much of the type you know:
+
+* When the type is completely known and you have an instance for `Split` (which describes how to separate a type into its head and its type arguments), you should use `GenericS`. This is the most common scenario: for example, `fromS (Left True)` works as you may expect, using the `GenericK` instance for `Either`. This option also provides the closest experience to `GHC.Generics`.
+* When you know the `f` in the `f :@@: x`, it is possible to use `GenericF`. In that case, you have to provide the head of the type using a type application. For example, `fromF @Either (Just True)`.
+* A third option is to indicate *how many* arguments should go in the list of types `x` to generate `f :@@: x`. In the previous case, you might have also used `fromN @(S (S Z)) (Just True)`. Note that the length of the list of types is expressed as a unary number.
 
 ## Describing fields: the functor `F`
 
@@ -148,7 +158,7 @@ data WeirdTree a where
 The family of pattern functors `U1`, `F`, `(:+:)`, and `(:*:)` is not enough. Let us see what other things we use in the representation of `WeirdTree`:
 
 ```haskell
-instance GenericK WeirdTree (a ':&&: 'LoT0) where
+instance GenericK WeirdTree (a :&&: LoT0) where
   type RepK WeirdTree
     = F (WeirdTree :$: V0) :*: F (WeirdTree :$: V0)
       :+: E ((Show :$: V1) :=>: (F V0 :*: F V1))
@@ -161,7 +171,7 @@ But wait a minute! You have just told me that the first type variable is represe
 Unfortunately, at this point you need to write your own conversion functions if you use any of these extended features (pull requests implementing it in Template Haskell are more than welcome).
 
 ```haskell
-instance GenericK WeirdTree (a ':&&: 'LoT0) where
+instance GenericK WeirdTree (a :&&: LoT0) where
   type RepK WeirdTree = ...
 
   fromK (WeirdBranch l r) = L1 $         F l :*: F r

@@ -22,9 +22,9 @@ module Generics.SOP.Kind (
 , AllAtoms, AllAtomsB, AllAtomsP
 , NS(..), NB(..), NP(..), NA(..)
 , RepK, GenericK(..)
-, GenericS, fromS, toS
+, GenericF, fromF, toF
 , GenericN, fromN, toN
-, GenericO, fromO, toO
+, GenericS, fromS, toS
 ) where
 
 import Data.Kind
@@ -100,23 +100,23 @@ class GenericK (f :: k) (x :: LoT k) where
         => RepK (CodeK f) x -> f :@@: x
   toK = to . toGhcGenericsS
 
-type GenericS t f x = (GenericK f x, x ~ (Split t f), t ~ (f :@@: x))
-fromS :: forall f t x. GenericS t f x => t -> RepK (CodeK f) x
-fromS = fromK @_ @f
-toS :: forall f t x. GenericS t f x => RepK (CodeK f) x -> t
-toS = toK @_ @f
+type GenericF t f x = (GenericK f x, x ~ (SplitF t f), t ~ (f :@@: x))
+fromF :: forall f t x. GenericF t f x => t -> RepK (CodeK f) x
+fromF = fromK @_ @f
+toF :: forall f t x. GenericF t f x => RepK (CodeK f) x -> t
+toF = toK @_ @f
 
-type GenericN n t f x = (GenericK f x, 'TyEnv f x ~ (SplitAt n t), t ~ (f :@@: x))
+type GenericN n t f x = (GenericK f x, 'TyEnv f x ~ (SplitN n t), t ~ (f :@@: x))
 fromN :: forall n t f x. GenericN n t f x => t -> RepK (CodeK f) x
 fromN = fromK @_ @f
 toN :: forall n t f x. GenericN n t f x => RepK (CodeK f) x -> t
 toN = toK @_ @f
 
-type GenericO t f x = (Break t f x, GenericK f x)
-fromO :: forall f t x. GenericO t f x => t -> RepK (CodeK f) x
-fromO = fromK @_ @f
-toO :: forall f t x. GenericO t f x => RepK (CodeK f) x -> t
-toO = toK @_ @f
+type GenericS t f x = (Split t f x, GenericK f x)
+fromS :: forall f t x. GenericS t f x => t -> RepK (CodeK f) x
+fromS = fromF @f
+toS :: forall f t x. GenericS t f x => RepK (CodeK f) x -> t
+toS = toF @f
 
 -- CONVERSION
 

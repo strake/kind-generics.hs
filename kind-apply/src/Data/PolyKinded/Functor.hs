@@ -28,6 +28,6 @@ data Mappings (v :: Variances) (x :: LoT k) (y :: LoT k) where
 class KFunctor (f :: k) (v :: Variances) (as :: LoT k) (bs :: LoT k) | f -> v where
   kfmap :: Mappings v as bs -> f :@@: as -> f :@@: bs
 
-kmapo :: forall t f v as bs. (Break t f as, KFunctor f v as bs)
+kmapo :: forall t f v as bs. (Split t f as, KFunctor f v as bs)
       => Mappings v as bs -> t -> f :@@: bs
 kmapo = kfmap @_ @f

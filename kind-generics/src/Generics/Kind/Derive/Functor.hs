@@ -26,10 +26,10 @@ kfmapDefault :: forall (f :: k) v as bs. (GenericK f as, GenericK f bs, GFunctor
 kfmapDefault v = toK @k @f @bs . gfmap v . fromK @k @f @as
 
 fmapDefault :: forall (f :: * -> *) a b.
-               (GenericK f (a :&&: LoT0), GenericK f (b :&&: LoT0),
-                GFunctor (RepK f) '[ 'Co ] (a :&&: LoT0) (b :&&: LoT0))
+               (GenericK f (a ':&&: 'LoT0), GenericK f (b ':&&: 'LoT0),
+                GFunctor (RepK f) '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0))
              => (a -> b) -> f a -> f b
-fmapDefault f = kfmapDefault (f :^: M0 :: Mappings '[ 'Co ] (a :&&: LoT0) (b :&&: LoT0))
+fmapDefault f = kfmapDefault (f :^: M0 :: Mappings '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0))
 
 class GFunctor (f :: LoT k -> *) (v :: Variances) (as :: LoT k) (bs :: LoT k) where
   gfmap :: Mappings v as bs -> f as -> f bs

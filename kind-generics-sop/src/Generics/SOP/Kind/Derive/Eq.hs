@@ -7,9 +7,9 @@ module Generics.SOP.Kind.Derive.Eq where
 import Generics.SOP.Kind
 
 geq' :: forall t f x.
-        (GenericO t f x, AllFields Eq (CodeK f) x)
+        (GenericS t f x, AllFields Eq (CodeK f) x)
      => t -> t -> Bool
-geq' x y = geq (fromO x) (fromO y)
+geq' x y = geq (fromS x) (fromS y)
 
 geq :: forall f tys. AllFields Eq f tys
     => RepK f tys -> RepK f tys -> Bool

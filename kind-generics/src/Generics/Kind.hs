@@ -22,9 +22,9 @@ module Generics.Kind (
 , (:+:)(..), (:*:)(..), U1(..), M1(..)
 , F(..), (:=>:)(..), E(..)
 , GenericK(..), Conv(..)
-, GenericS, fromS, toS
+, GenericF, fromF, toF
 , GenericN, fromN, toN
-, GenericO, fromO, toO
+, GenericS, fromS, toS
 ) where
 
 import Data.PolyKinded
@@ -60,23 +60,23 @@ class GenericK (f :: k) (x :: LoT k) where
         => RepK f x -> f :@@: x
   toK = to . toGhcGenerics
 
-type GenericS t f x = (GenericK f x, x ~ (Split t f), t ~ (f :@@: x))
-fromS :: forall f t x. GenericS t f x => t -> RepK f x
-fromS = fromK @_ @f
-toS :: forall f t x. GenericS t f x => RepK f x -> t
-toS = toK @_ @f
+type GenericF t f x = (GenericK f x, x ~ (SplitF t f), t ~ (f :@@: x))
+fromF :: forall f t x. GenericF t f x => t -> RepK f x
+fromF = fromK @_ @f
+toF :: forall f t x. GenericF t f x => RepK f x -> t
+toF = toK @_ @f
 
-type GenericN n t f x = (GenericK f x, 'TyEnv f x ~ (SplitAt n t), t ~ (f :@@: x))
+type GenericN n t f x = (GenericK f x, 'TyEnv f x ~ (SplitN n t), t ~ (f :@@: x))
 fromN :: forall n t f x. GenericN n t f x => t -> RepK f x
 fromN = fromK @_ @f
 toN :: forall n t f x. GenericN n t f x => RepK f x -> t
 toN = toK @_ @f
 
-type GenericO t f x = (Break t f x, GenericK f x)
-fromO :: forall f t x. GenericO t f x => t -> RepK f x
-fromO = fromK @_ @f
-toO :: forall f t x. GenericO t f x => RepK f x -> t
-toO = toK @_ @f
+type GenericS t f x = (Split t f x, GenericK f x)
+fromS :: forall t f x. GenericS t f x => t -> RepK f x
+fromS = fromF @f
+toS :: forall t f x. GenericS t f x => RepK f x -> t
+toS = toF @f
 
 -- CONVERSION BETWEEN GHC.GENERICS AND KIND-GENERICS
 
