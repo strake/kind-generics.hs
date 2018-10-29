@@ -2,7 +2,7 @@ cabal-version:       >=1.10
 name:                kind-apply
 version:             0.1.0.0
 -- synopsis:
--- description:
+description:         Utilities to work with lists of types.
 -- bug-reports:
 license:             BSD3
 license-file:        LICENSE

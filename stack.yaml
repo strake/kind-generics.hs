@@ -3,4 +3,4 @@ packages:
 - kind-generics/
 - kind-generics-sop/
 extra-deps: []
-resolver: nightly-2018-10-26
+resolver: nightly-2018-10-29
