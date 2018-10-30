@@ -1,8 +1,8 @@
 cabal-version:       >=1.10
 name:                kind-generics
 version:             0.1.0.0
--- synopsis:
--- description:
+synopsis:            Generic programming in GHC style for arbitrary kinds and GADTs.
+description:         This package provides functionality to extend the data type generic programming functionality in GHC to classes of arbitrary kind, and constructors featuring constraints and existentials, as usually gound in GADTs.
 -- bug-reports:
 license:             BSD3
 license-file:        LICENSE
@@ -11,7 +11,11 @@ maintainer:          trupill@gmail.com
 -- copyright:
 category:            Data
 build-type:          Simple
-extra-files:         README.md
+extra-source-files:  README.md
+
+source-repository head
+  type:     git
+  location: https://gitlab.com/trupill/kind-generics.git
 
 library
   exposed-modules:     Generics.Kind,
