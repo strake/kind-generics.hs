@@ -26,8 +26,7 @@ data Expr t where
   Lam :: (Typeable a, Typeable b) => (Bind (Var a) (Expr b)) -> Expr (a -> b)
   App :: (Typeable a) => Expr (a -> b) -> Expr a -> Expr b
 
-{-
-eval :: (forall s. Typeable s) => Expr t -> FreshM (Expr t)
+eval :: Typeable t => Expr t -> FreshM (Expr t)
 eval (V x) = fail $ "unbound variable " ++ show x
 eval e@(Lam {}) = return e
 eval (App e1 e2) = do
@@ -40,18 +39,15 @@ eval (App e1 e2) = do
      let body' = subst x v2 body
      eval body'
    _ -> fail "application of non-lambda"
--}
 
-{-
-example :: (forall s. Typeable s) => Expr (a -> a)
+example :: forall a. Typeable a => Expr (a -> a)
 example =
   let x = s2n "x"
       y = s2n "y"
-      e1 = Lam $ bind x (Lam $ bind y (V x))  -- \x y -> x
+      e1 = Lam @(a -> a) $ bind x (Lam @(a -> a) $ bind y (V x)) -- \x y -> x
       z = s2n "z"
-      e2 = Lam $ bind z (V z)
+      e2 = Lam @a $ bind z (V z) -- \z -> z
   in runFreshM $ eval (App (App e1 e2) e2)
--}
 
 deriving instance Show (Expr t)
 
