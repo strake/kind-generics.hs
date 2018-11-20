@@ -33,6 +33,7 @@ import Data.PolyKinded.Atom
 import Data.SOP
 import GHC.Generics.Extra hiding ((:=>:))
 import qualified GHC.Generics.Extra as GG
+import Type.Reflection (Typeable)
 
 -- CODES
 
@@ -42,6 +43,7 @@ type Fields      d = [ Atom d (*) ]
 
 data Branch (d :: k) where
   E      :: Branch (p -> d) -> Branch d
+  ERefl  :: Branch (p -> d) -> Branch d
   (:=>:) :: Constraints d -> Fields d -> Branch d
 
 -- CONSTRAINTS
@@ -51,9 +53,19 @@ type family AllFields (c :: * -> Constraint) (d :: DataType k) (tys :: LoT k) ::
   AllFields c (b ': bs) tys = (AllFieldsB c b tys, AllFields c bs tys)
 
 type family AllFieldsB (c :: * -> Constraint) (d :: Branch k) (tys :: LoT k) :: Constraint where
-  -- AllFieldsB c ('E b) tys = (forall t. AllFieldsB c b (t ':&&: tys))
-  -- AllFieldsB c (cs ':=>: fs) tys = (Satisfies cs tys => AllFieldsP c fs tys)
+  -- AllFieldsB c ('E b) tys = AllFieldsBForAll c b tys
+  -- AllFieldsB c (cs ':=>: fs) tys = AllFieldsBImplies c cs fs tys
   AllFieldsB c (cs ':=>: fs) tys = AllFieldsP c fs tys
+
+{-
+class (forall t. AllFieldsB c b (t ':&&: tys))
+      => AllFieldsBForAll (c :: * -> Constraint) (b :: Branch (p -> k)) (tys :: LoT k)
+instance (forall t. AllFieldsB c b (t ':&&: tys)) => AllFieldsBForAll c b tys
+
+class (Satisfies cs tys => AllFieldsP c fs tys)
+      => AllFieldsBImplies (c :: * -> Constraint) (cs :: Constraints k) (fs :: Fields k) (tys :: LoT k)
+instance (Satisfies cs tys => AllFieldsP c fs tys) => AllFieldsBImplies c cs fs tys
+-}
 
 type family AllFieldsP (c :: * -> Constraint) (d :: Fields k) (tys :: LoT k) :: Constraint where
   AllFieldsP c '[] tys = ()
@@ -75,6 +87,7 @@ type family AllAtomsP (c :: Atom k (*) -> Constraint) (d :: Fields k) :: Constra
 
 data NB (tys :: LoT d) (b :: Branch d) where
   E_ :: NB (t ':&&: tys) c -> NB tys ('E c)
+  ERefl_ :: Typeable t => NB (t ':&&: tys) c -> NB tys ('ERefl c)
   C_ :: Ty c tys => NB tys (cs ':=>: fs) -> NB tys ((c ': cs) ':=>: fs)
   F_ :: NP (NA tys) fs -> NB tys ('[] ':=>: fs)
 

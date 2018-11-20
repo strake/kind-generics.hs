@@ -35,6 +35,7 @@ gfmap v = goS
     goB (C_ _) = error "constraints are not supported"
     -- goB v (E_ x) = E_ (goB ((id :^: v) :: Mappings ('Co ': v) (t ':&&: cs) (t ':&&: ds)) x)
     goB (E_ _) = error "existentials are not supported"
+    goB (ERefl_ _) = error "existentials are not supported"
     goB (F_ x) = F_ (goP x)
 
     goP :: forall (d :: Fields k). AllAtomsP (GFunctorArg v 'Co as bs) d
