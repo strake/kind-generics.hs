@@ -22,7 +22,7 @@ module Generics.Kind (
 , module Data.PolyKinded.Atom
   -- * Generic representation types
 , (:+:)(..), (:*:)(..), U1(..), M1(..)
-, F(..), (:=>:)(..), E(..)
+, F(..), (:=>:)(..), E(..), ERefl(..)
   -- * Generic type classes
 , GenericK(..)
 , GenericF, fromF, toF
@@ -37,6 +37,7 @@ import Data.PolyKinded.Atom
 import Data.Kind
 import GHC.Generics.Extra hiding ((:=>:))
 import qualified GHC.Generics.Extra as GG
+import Type.Reflection
 
 -- | Fields: used to represent each of the (visible) arguments to a constructor.
 -- Replaces the 'K1' type from "GHC.Generics". The type of the field is
@@ -69,6 +70,18 @@ data (:=>:) (c :: Atom d Constraint) (f :: LoT d -> *) (x :: LoT d) where
 data E (f :: LoT (k -> d) -> *) (x :: LoT d) where
   E :: forall (t :: k) d (f :: LoT (k -> d) -> *) (x :: LoT d)
      . f (t ':&&: x) -> E f x
+
+-- | Existentials with reflection: similar to 'E',
+--   but in addition we remember the type of the existential variable.
+--
+-- > data Exists where
+-- >  E :: Typeable t => t -> Exists
+-- >
+-- > instance GenericK Exists LoT0 where
+-- >   type RepK Exists = ERefl (F V0)
+data ERefl (f :: LoT (k -> d) -> *) (x :: LoT d) where
+  ERefl :: forall (t :: k) d (f :: LoT (k -> d) -> *) (x :: LoT d)
+         . Typeable t => f (t ':&&: x) -> ERefl f x
 
 -- THE TYPE CLASS
 

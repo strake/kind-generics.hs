@@ -14,6 +14,7 @@
 module Generics.Kind.Derive.Eq where
 
 import Generics.Kind
+import Type.Reflection
 
 geq' :: forall t f x. (GenericS t f x, GEq (RepK f) x)
      => t -> t -> Bool
@@ -42,7 +43,14 @@ instance (Eq (Ty t tys)) => GEq (F t) tys where
 instance (Ty c tys => GEq f tys) => GEq (c :=>: f) tys where
   geq (C x) (C y) = geq x y
 
-{- We cannot check whether the two existentials have the same type
-instance (forall t. GEq f (t :&&: tys)) => GEq (E f) tys where
-  geq (E x) (E y) = geq x y
--}
+instance (forall t. (GEq f (t :&&: tys), Typeable t)) => GEq (E f) tys where
+  geq (E (x :: f (t1 :&&: tys))) (E (y :: f (t2 :&&: tys)))
+    = case eqTypeRep (typeRep @t1) (typeRep @t2) of
+        Nothing    -> False
+        Just HRefl -> geq x y
+
+instance (forall t. GEq f (t :&&: tys)) => GEq (ERefl f) tys where
+  geq (ERefl (x :: f (t1 :&&: tys))) (ERefl (y :: f (t2 :&&: tys)))
+    = case eqTypeRep (typeRep @t1) (typeRep @t2) of
+        Nothing    -> False
+        Just HRefl -> geq x y

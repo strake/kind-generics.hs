@@ -58,6 +58,11 @@ instance forall f v as bs.
          => GFunctor (E f) v as bs where
   gfmap v (E (x :: f (t ':&&: x))) = E (gfmap ((id :^: v) :: Mappings ('Co ': v) (t ':&&: as) (t ':&&: bs)) x)
 
+instance forall f v as bs.
+         (forall (t :: *). GFunctor f ('Co ': v) (t ':&&: as) (t ':&&: bs))
+         => GFunctor (ERefl f) v as bs where
+  gfmap v (ERefl (x :: f (t ':&&: x))) = ERefl (gfmap ((id :^: v) :: Mappings ('Co ': v) (t ':&&: as) (t ':&&: bs)) x)
+
 class GFunctorArg (t :: Atom d (*))
                   (v :: Variances) (intended :: Variance)
                   (as :: LoT d) (bs :: LoT d) where
