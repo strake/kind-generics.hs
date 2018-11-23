@@ -16,12 +16,6 @@ module Generics.Kind.Derive.Functor where
 import Data.Proxy
 import Generics.Kind
 
-fmap1Default :: forall (f :: k) v a as b bs.
-                (GenericK f as, GenericK f bs,
-                 GFunctor1 (RepK f) v a as b bs)
-              => Proxy v -> (a -> b) -> f :@@: as -> f :@@: bs
-fmap1Default p f = toK @k @f @bs . gfmap1 p f . fromK @k @f @as
-
 fmap1DefaultS :: (GenericS r f as, GenericS t f bs,
                   GFunctor1 (RepK f) v a as b bs)
                => Proxy v -> (a -> b) -> r -> t

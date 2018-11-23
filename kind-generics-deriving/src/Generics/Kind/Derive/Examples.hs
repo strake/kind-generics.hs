@@ -40,4 +40,6 @@ instance (Eq a) => Eq (WeirdTreeR a) where
 {-
 instance Show b => KFunctor WeirdTreeR '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
   kfmap = kfmapDefault
+instance Functor WeirdTreeR where
+  fmap = fmap1DefaultS (Proxy :: Proxy VZ)
 -}
