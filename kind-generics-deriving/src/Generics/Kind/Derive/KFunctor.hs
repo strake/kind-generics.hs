@@ -14,7 +14,7 @@
 {-# language DefaultSignatures      #-}
 {-# language AllowAmbiguousTypes    #-}
 {-# language TypeFamilies           #-}
-module Generics.Kind.Derive.Functor where
+module Generics.Kind.Derive.KFunctor where
 
 import Data.PolyKinded.Functor
 import Data.Proxy

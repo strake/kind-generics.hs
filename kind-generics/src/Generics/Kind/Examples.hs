@@ -14,17 +14,12 @@ import GHC.Generics (Generic)
 import Type.Reflection
 
 import Generics.Kind
-import Generics.Kind.Derive.Eq
-import Generics.Kind.Derive.Functor
 
 -- Obtained from Generic
 
 instance Split (Maybe a) Maybe (a ':&&: 'LoT0)
 instance GenericK Maybe (a ':&&: 'LoT0) where
   type RepK Maybe = U1 :+: F V0
-
-instance KFunctor Maybe '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
-  kfmap = kfmapDefault
 
 -- From the docs
 
@@ -34,15 +29,6 @@ data Tree a = Branch (Tree a) (Tree a) | Leaf a
 instance Split (Tree a) Tree (a ':&&: 'LoT0)
 instance GenericK Tree (a ':&&: 'LoT0) where
   type RepK Tree = F (Tree :$: V0) :*: F (Tree :$: V0) :+: F V0
-
-instance Eq a => Eq (Tree a) where
-  (==) = geq'
-
-instance KFunctor Tree '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
-  kfmap = kfmapDefault
-
-instance Functor Tree where
-  fmap = fmapDefault
 
 -- Hand-written instance
 
@@ -62,9 +48,6 @@ instance GenericK WeirdTree (a ':&&: 'LoT0) where
   toK (L1 (F l :*: F r)) = WeirdBranch l r
   toK (R1 (E (C (F a :*: F x)))) = WeirdLeaf a x
 
-instance Show b => KFunctor WeirdTree '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
-  kfmap = kfmapDefault
-
 -- Hand-written instance with reflection
 
 data WeirdTreeR a where
@@ -82,11 +65,3 @@ instance GenericK WeirdTreeR (a ':&&: 'LoT0) where
 
   toK (L1 (F l :*: F r)) = WeirdBranchR l r
   toK (R1 (ERefl (C (C (F a :*: F x))))) = WeirdLeafR a x
-
-instance (Eq a) => Eq (WeirdTreeR a) where
-  (==) = geq'
-
-{-
-instance Show b => KFunctor WeirdTreeR '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
-  kfmap = kfmapDefault
--}
