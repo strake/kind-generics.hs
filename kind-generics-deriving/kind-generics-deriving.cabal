@@ -20,6 +20,7 @@ source-repository head
 library
   exposed-modules:     Generics.Kind.Derive.Eq,
                        Generics.Kind.Derive.Functor,
+                       Generics.Kind.Derive.Traversable,
                        Generics.Kind.Derive.KFunctor,
                        Generics.Kind.Derive.Examples
   -- other-modules:
