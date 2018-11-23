@@ -7,6 +7,7 @@ module Generics.Kind.Derive.Examples where
 
 import Data.PolyKinded.Functor
 import Data.Proxy
+import Data.Traversable (foldMapDefault)
 import GHC.Generics (Generic)
 import Type.Reflection
 
@@ -15,6 +16,7 @@ import Generics.Kind.Examples
 import Generics.Kind.Derive.Eq
 import Generics.Kind.Derive.Functor
 import Generics.Kind.Derive.KFunctor
+import Generics.Kind.Derive.Traversable
 
 -- Maybe
 instance KFunctor Maybe '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
@@ -28,6 +30,10 @@ instance KFunctor Tree '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
 instance Functor Tree where
   -- fmap = fmapDefault
   fmap = fmap1DefaultS (Proxy :: Proxy VZ)
+instance Foldable Tree where
+  foldMap = foldMapDefault
+instance Traversable Tree where
+  traverse = traverseDefault (Proxy :: Proxy VZ)
 
 -- WeirdTree
 instance Show b => KFunctor WeirdTree '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
