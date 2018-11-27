@@ -57,6 +57,7 @@ deriving instance Show (Ty t x) => Show (F t x)
 -- >   type RepK Showable = (Show :$: a) :=>: (F V0)
 data (:=>:) (c :: Atom d Constraint) (f :: LoT d -> *) (x :: LoT d) where
   C :: Ty c x => f x -> (c :=>: f) x
+deriving instance (Ty c x => Show (f x)) => Show ((c :=>: f) x)
 
 -- | Existentials: a representation of the form @E f@ describes
 -- a constructor whose inner type is represented by @f@, and where
@@ -70,6 +71,7 @@ data (:=>:) (c :: Atom d Constraint) (f :: LoT d -> *) (x :: LoT d) where
 data E (f :: LoT (k -> d) -> *) (x :: LoT d) where
   E :: forall (t :: k) d (f :: LoT (k -> d) -> *) (x :: LoT d)
      . f (t ':&&: x) -> E f x
+deriving instance (forall t. Show (f (t ':&&: x))) => Show (E f x)
 
 -- | Existentials with reflection: similar to 'E',
 --   but in addition we remember the type of the existential variable.
