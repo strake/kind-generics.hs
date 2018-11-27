@@ -27,7 +27,7 @@ instance KFunctor Maybe '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
 
 -- Tree
 instance Eq a => Eq (Tree a) where
-  (==) = geq2'
+  (==) = geq'
 instance KFunctor Tree '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
   kfmap = kfmapDefault
 instance Functor Tree where
@@ -47,13 +47,5 @@ instance Show b => KFunctor WeirdTree '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) w
   kfmap = kfmapDefault
 
 -- WeirdTree with reflected existentials
-instance (Eq a) => Eq (WeirdTreeR a) where
-  (==) = geq'
-  -- (==) = geq2'
-
-{-
-instance Show b => KFunctor WeirdTreeR '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
-  kfmap = kfmapDefault
-instance Functor WeirdTreeR where
-  fmap = fmap1DefaultS (Proxy :: Proxy VZ)
--}
+-- instance (Eq a) => Eq (WeirdTreeR a) where
+  -- (==) = geq'
