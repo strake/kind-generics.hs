@@ -49,9 +49,11 @@ instance (forall x y. GEq2 f (x ':&&: xs) (y ':&&: ys))
          => GEq2 (E f) xs ys where
   geq2 (E x) (E y) = geq2 x y
 
+{-
 instance (forall x y. GEq2 f (x ':&&: xs) (y ':&&: ys))
          => GEq2 (ERefl f) xs ys where
   geq2 (ERefl (x :: f (x :&&: xs))) (ERefl (y :: f (y :&&: ys)))
     = case eqTypeRep (typeRep @x) (typeRep @y) of
         Nothing    -> False
         Just HRefl -> geq2 x y
+-}

@@ -22,7 +22,7 @@ module Generics.Kind (
 , module Data.PolyKinded.Atom
   -- * Generic representation types
 , (:+:)(..), (:*:)(..), U1(..), M1(..)
-, F(..), (:=>:)(..), E(..), ERefl(..)
+, F(..), (:=>:)(..), E(..)
   -- * Generic type classes
 , GenericK(..)
 , GenericF, fromF, toF
@@ -73,18 +73,6 @@ data E (f :: LoT (k -> d) -> *) (x :: LoT d) where
   E :: forall (t :: k) d (f :: LoT (k -> d) -> *) (x :: LoT d)
      . f (t ':&&: x) -> E f x
 deriving instance (forall t. Show (f (t ':&&: x))) => Show (E f x)
-
--- | Existentials with reflection: similar to 'E',
---   but in addition we remember the type of the existential variable.
---
--- > data Exists where
--- >  E :: Typeable t => t -> Exists
--- >
--- > instance GenericK Exists LoT0 where
--- >   type RepK Exists = ERefl (F V0)
-data ERefl (f :: LoT (k -> d) -> *) (x :: LoT d) where
-  ERefl :: forall (t :: k) d (f :: LoT (k -> d) -> *) (x :: LoT d)
-         . Typeable t => f (t ':&&: x) -> ERefl f x
 
 -- THE TYPE CLASS
 

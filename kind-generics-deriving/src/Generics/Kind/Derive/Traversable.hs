@@ -57,11 +57,6 @@ instance forall f v a as b bs.
          => GTraversable (E f) v a as b bs where
   gtraverse p v (E (x :: f (t ':&&: x))) = E <$> gtraverse' @(t ':&&: x) @(t :&&: _) (Proxy @(VS v)) v x
 
-instance forall f v a as b bs.
-         (forall (t :: *). GTraversable f (VS v) a (t ':&&: as) b (t ':&&: bs))
-         => GTraversable (ERefl f) v a as b bs where
-  gtraverse p v (ERefl (x :: f (t ':&&: x))) = ERefl <$> gtraverse' @(t ':&&: x) @(t :&&: _) (Proxy @(VS v)) v x
-
 class GTraversableArg (t :: Atom d (*)) (v :: TyVar d *)
                    (a :: *) (as :: LoT d) (b :: *) (bs :: LoT d) where
   gtraversef :: Applicative g => Proxy t -> Proxy v -> Proxy as -> Proxy bs

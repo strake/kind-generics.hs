@@ -332,9 +332,9 @@ instance (Ty c a => GAlphaK f a) => GAlphaK (c :=>: f) a where
 
 instance forall (f :: LoT (k -> r) -> *) (a :: LoT r).
          (Typeable k, Typeable r, Typeable f, Typeable a,  -- Just to please GHC
-          (forall (t :: k). (Typeable t, GAlphaK f (t :&&: a))))
-         => GAlphaK (E f) a where
-  gaeqK ctx (E (f1 :: f (t1 :&&: a))) (E (f2 :: f (t2 :&&: a))) =
+          (forall (t :: k). (Typeable t => GAlphaK f (t :&&: a))))
+         => GAlphaK (E ((Typeable :$: V0) :=>: f)) a where
+  gaeqK ctx (E (C (f1 :: f (t1 :&&: a)))) (E (C (f2 :: f (t2 :&&: a)))) =
     case eqTypeRep (typeRep @t1) (typeRep @t2) of
       Nothing    -> False
       Just HRefl -> gaeqK ctx f1 f2
@@ -370,53 +370,7 @@ instance forall (f :: LoT (k -> r) -> *) (a :: LoT r).
     glfreshenK ctx f (cont . E)
   {-# INLINE glfreshenK #-}
 
-  gacompareK ctx (E (f1 :: f (t1 :&&: a))) (E (f2 :: f (t2 :&&: a))) = 
-    case eqTypeRep (typeRep @t1) (typeRep @t2) of
-      Nothing    -> compare (SomeTypeRep (typeRep @t1)) (SomeTypeRep (typeRep @t2))
-      Just HRefl -> gacompareK ctx f1 f2
-  {-# INLINE gacompareK #-}
-
-instance forall (f :: LoT (k -> r) -> *) (a :: LoT r).
-         (Typeable k, Typeable r, Typeable f, Typeable a,  -- Just to please GHC
-          (forall (t :: k). (Typeable t => GAlphaK f (t :&&: a))))
-         => GAlphaK (ERefl f) a where
-  gaeqK ctx (ERefl (f1 :: f (t1 :&&: a))) (ERefl (f2 :: f (t2 :&&: a))) =
-    case eqTypeRep (typeRep @t1) (typeRep @t2) of
-      Nothing    -> False
-      Just HRefl -> gaeqK ctx f1 f2
-  {-# INLINE gaeqK #-}
-
-  gfvAnyK ctx nfn (ERefl f) = fmap ERefl (gfvAnyK ctx nfn f)
-  {-# INLINE gfvAnyK #-}
-
-  gcloseK ctx b (ERefl f) = ERefl (gcloseK ctx b f)
-  {-# INLINE gcloseK #-}
-  gopenK ctx b (ERefl f) = ERefl (gopenK ctx b f)
-  {-# INLINE gopenK #-}
-
-  gisPatK (ERefl f) = gisPatK f
-  {-# INLINE gisPatK #-}
-
-  gisTermK (ERefl f) = gisTermK f
-  {-# INLINE gisTermK #-}
-
-  gnthPatFindK (ERefl f) = gnthPatFindK f
-  {-# INLINE gnthPatFindK #-}
-
-  gnamePatFindK (ERefl f) = gnamePatFindK f
-  {-# INLINE gnamePatFindK #-}
-
-  gswapsK ctx perm (ERefl f) = ERefl (gswapsK ctx perm f)
-  {-# INLINE gswapsK #-}
-
-  gfreshenK ctx (ERefl f) = liftM (first ERefl) (gfreshenK ctx f)
-  {-# INLINE gfreshenK #-}
-
-  glfreshenK ctx (ERefl f) cont =
-    glfreshenK ctx f (cont . ERefl)
-  {-# INLINE glfreshenK #-}
-
-  gacompareK ctx (ERefl (f1 :: f (t1 :&&: a))) (ERefl (f2 :: f (t2 :&&: a))) = 
+  gacompareK ctx (E (C (f1 :: f (t1 :&&: a)))) (E (C (f2 :: f (t2 :&&: a)))) = 
     case eqTypeRep (typeRep @t1) (typeRep @t2) of
       Nothing    -> compare (SomeTypeRep (typeRep @t1)) (SomeTypeRep (typeRep @t2))
       Just HRefl -> gacompareK ctx f1 f2
@@ -485,7 +439,3 @@ instance ((Ty c a) => GSubstK b f a) => GSubstK b (c :=>: f) a where
 instance (forall t. GSubstK b f (t :&&: a)) => GSubstK b (E f) a where
   gsubstK nm val (E f) = E $ gsubstK nm val f
   gsubstsK ss (E f) = E $ gsubstsK ss f
-
-instance (forall t. (Typeable t => GSubstK b f (t :&&: a))) => GSubstK b (ERefl f) a where
-  gsubstK nm val (ERefl f) = ERefl $ gsubstK nm val f
-  gsubstsK ss (ERefl f) = ERefl $ gsubstsK ss f

@@ -55,11 +55,6 @@ instance forall f v a as b bs.
          => GFunctorPos (E f) v a as b bs where
   gfmapp p v (E (x :: f (t ':&&: x))) = E (gfmapp' @(t ':&&: x) @(t :&&: _) (Proxy @(VS v)) v x)
 
-instance forall f v a as b bs.
-         (forall (t :: *). GFunctorPos f (VS v) a (t ':&&: as) b (t ':&&: bs))
-         => GFunctorPos (ERefl f) v a as b bs where
-  gfmapp p v (ERefl (x :: f (t ':&&: x))) = ERefl (gfmapp' @(t ':&&: x) @(t :&&: _) (Proxy @(VS v)) v x)
-
 class GFunctorArgPos (t :: Atom d (*)) (v :: TyVar d *)
                    (a :: *) (as :: LoT d) (b :: *) (bs :: LoT d) where
   gfmappf :: Proxy t -> Proxy v -> Proxy as -> Proxy bs

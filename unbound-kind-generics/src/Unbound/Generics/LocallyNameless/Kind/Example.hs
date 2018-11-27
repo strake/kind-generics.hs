@@ -55,21 +55,24 @@ instance GenericK (Expr t) LoT0 where
   type RepK (Expr t) =
     ((F (Kon (Name (Expr t)))))
     :+:
-    (ERefl {- V1 = a -} (ERefl {- V0 = b -} (
-      ((Kon t) :~: ((->) :$: V1 :@: V0))
-      :=>:
-      (F (Bind :$: (Name :$: (Expr :$: V1)) :@: (Expr :$: V0))) )))
+    (E {- V1 = a -} ((Typeable :$: V0) :=>:
+      (E {- V0 = b -} ((Typeable :$: V0) :=>:
+        (((Kon t) :~: ((->) :$: V1 :@: V0))
+         :=>:
+         (F (Bind :$: (Name :$: (Expr :$: V1)) :@: (Expr :$: V0)))) ))))
     :+:
-    (ERefl {- V0 = a -} (
-      (F (Expr :$: ((->) :$: V0 :@: (Kon t)))) :*: F (Expr :$: V0) ))
+    (E {- V0 = a -} (
+      (Typeable :$: V0)
+      :=>:
+      ((F (Expr :$: ((->) :$: V0 :@: (Kon t)))) :*: F (Expr :$: V0)) ))
 
   fromK (V   v)   = L1 (F v)
-  fromK (Lam b)   = R1 (L1 (ERefl (ERefl (C (F b)))))
-  fromK (App x y) = R1 (R1 (ERefl (F x :*: F y)))
+  fromK (Lam b)   = R1 (L1 (E (C (E (C (C (F b)))))))
+  fromK (App x y) = R1 (R1 (E (C (F x :*: F y))))
 
   toK (L1 (F v))                          = V v
-  toK (R1 (L1 (ERefl (ERefl (C (F b)))))) = Lam b
-  toK (R1 (R1 (ERefl (F x :*: F y))))     = App x y
+  toK (R1 (L1 (E (C (E (C (C (F b)))))))) = Lam b
+  toK (R1 (R1 (E (C (F x :*: F y)))))     = App x y
 
 instance Typeable t => Alpha (Expr t) where
   aeq'        = aeqDefK
