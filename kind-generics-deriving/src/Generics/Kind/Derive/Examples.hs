@@ -43,7 +43,8 @@ instance Show b => KFunctor WeirdTree '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) w
 
 -- WeirdTree with reflected existentials
 instance (Eq a) => Eq (WeirdTreeR a) where
-  (==) = geq2'
+  (==) = geq'
+  -- (==) = geq2'
 
 {-
 instance Show b => KFunctor WeirdTreeR '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
