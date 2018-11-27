@@ -19,8 +19,9 @@ source-repository head
 
 library
   exposed-modules:     Generics.Kind.Derive.Eq,
-                       Generics.Kind.Derive.Functor,
-                       Generics.Kind.Derive.FunctorSimple,
+                       Generics.Kind.Derive.EqTwoParams,
+                       Generics.Kind.Derive.FunctorPosition,
+                       Generics.Kind.Derive.FunctorLast,
                        Generics.Kind.Derive.Traversable,
                        Generics.Kind.Derive.KFunctor,
                        Generics.Kind.Derive.Examples

@@ -14,7 +14,8 @@ import Type.Reflection
 import Generics.Kind
 import Generics.Kind.Examples
 import Generics.Kind.Derive.Eq
-import Generics.Kind.Derive.Functor
+import Generics.Kind.Derive.EqTwoParams
+import Generics.Kind.Derive.FunctorLast
 import Generics.Kind.Derive.KFunctor
 import Generics.Kind.Derive.Traversable
 
@@ -24,12 +25,13 @@ instance KFunctor Maybe '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
 
 -- Tree
 instance Eq a => Eq (Tree a) where
-  (==) = geq'
+  (==) = geq2'
 instance KFunctor Tree '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
   kfmap = kfmapDefault
 instance Functor Tree where
   -- fmap = fmapDefault
-  fmap = fmap1DefaultS (Proxy :: Proxy VZ)
+  -- fmap = fmapDefaultPos (Proxy :: Proxy VZ)
+  fmap = fmapDefaultLast
 instance Foldable Tree where
   foldMap = foldMapDefault
 instance Traversable Tree where
@@ -41,7 +43,7 @@ instance Show b => KFunctor WeirdTree '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) w
 
 -- WeirdTree with reflected existentials
 instance (Eq a) => Eq (WeirdTreeR a) where
-  (==) = geq'
+  (==) = geq2'
 
 {-
 instance Show b => KFunctor WeirdTreeR '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
