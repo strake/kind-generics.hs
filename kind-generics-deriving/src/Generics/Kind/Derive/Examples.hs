@@ -15,7 +15,8 @@ import Generics.Kind
 import Generics.Kind.Examples
 import Generics.Kind.Derive.Eq
 import Generics.Kind.Derive.EqTwoParams
-import Generics.Kind.Derive.FunctorLast
+import Generics.Kind.Derive.FunctorPosition
+import Generics.Kind.Derive.FunctorOne
 import Generics.Kind.Derive.KFunctor
 import Generics.Kind.Derive.Traversable
 
@@ -31,11 +32,14 @@ instance KFunctor Tree '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
 instance Functor Tree where
   -- fmap = fmapDefault
   -- fmap = fmapDefaultPos (Proxy :: Proxy VZ)
-  fmap = fmapDefaultLast
+  fmap = fmapDefaultOne
 instance Foldable Tree where
   foldMap = foldMapDefault
 instance Traversable Tree where
   traverse = traverseDefault (Proxy :: Proxy VZ)
+
+fmapEither :: (a -> b) -> Either e a -> Either e b
+fmapEither = fmapDefaultOne
 
 -- WeirdTree
 instance Show b => KFunctor WeirdTree '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where

@@ -19,7 +19,6 @@ source-repository head
 
 library
   exposed-modules:     Generics.Kind,
-                       Generics.Kind.View,
                        Generics.Kind.Examples
   -- other-modules:
   -- other-extensions:

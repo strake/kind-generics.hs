@@ -18,11 +18,11 @@ import Generics.Kind
 
 type LoT1 a = a ':&&: LoT0
 
-fmapDefaultOne :: (GenericS r f (LoT1 a),
-                   GenericS t f (LoT1 b),
+fmapDefaultOne :: (GenericK f (LoT1 a),
+                   GenericK f (LoT1 b),
                    GFunctorOne (RepK f) a b)
-                => (a -> b) -> r -> t
-fmapDefaultOne f = toS . gfmapo f . fromS
+                => (a -> b) -> f a -> f b
+fmapDefaultOne f = toK . gfmapo f . fromK
 
 class GFunctorOne (f :: LoT (* -> *) -> *) a b where
   gfmapo :: (a -> b) -> f (LoT1 a) -> f (LoT1 b)

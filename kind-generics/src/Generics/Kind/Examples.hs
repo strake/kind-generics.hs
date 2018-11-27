@@ -21,6 +21,10 @@ instance Split (Maybe a) Maybe (a ':&&: 'LoT0)
 instance GenericK Maybe (a ':&&: 'LoT0) where
   type RepK Maybe = U1 :+: F V0
 
+instance Split (Either a b) Either (a ':&&: b ':&&: LoT0)
+instance GenericK Either (a ':&&: b ':&&: LoT0) where
+  type RepK Either = F V0 :+: F V1
+
 -- From the docs
 
 data Tree a = Branch (Tree a) (Tree a) | Leaf a

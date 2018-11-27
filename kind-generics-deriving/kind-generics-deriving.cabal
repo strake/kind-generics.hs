@@ -21,7 +21,6 @@ library
   exposed-modules:     Generics.Kind.Derive.Eq,
                        Generics.Kind.Derive.EqTwoParams,
                        Generics.Kind.Derive.FunctorPosition,
-                       Generics.Kind.Derive.FunctorLast,
                        Generics.Kind.Derive.FunctorOne,
                        Generics.Kind.Derive.Traversable,
                        Generics.Kind.Derive.KFunctor,
