@@ -34,6 +34,7 @@ import Control.Arrow (first)
 import Control.Monad (liftM)
 import Data.Function (on)
 import Data.Functor.Contravariant (Contravariant(..))
+import Data.Kind
 import Data.List (find)
 import Data.Monoid (All(..))
 import Type.Reflection
@@ -46,44 +47,44 @@ import Unbound.Generics.LocallyNameless.Subst
 import Unbound.Generics.PermM
 import Generics.Kind
 
-aeqDefK :: (GenericS a f xs, GAlphaK (RepK f) xs)
+aeqDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
         => AlphaCtx -> a -> a -> Bool
-aeqDefK c = (gaeqK c) `on` fromS
-fvAnyDefK :: (GenericS a f xs, GAlphaK (RepK f) xs, Contravariant g, Applicative g)
+aeqDefK c = (gaeqK c) `on` (fromK @_ @a @LoT0)
+fvAnyDefK :: forall g a. (GenericK a LoT0, GAlphaK (RepK a) LoT0, Contravariant g, Applicative g)
           => AlphaCtx -> (AnyName -> g AnyName) -> a -> g a 
-fvAnyDefK c nfn = fmap toS . gfvAnyK c nfn . fromS
-closeDefK :: (GenericS a f xs, GAlphaK (RepK f) xs)
+fvAnyDefK c nfn = fmap (toK @_ @a @LoT0) . gfvAnyK c nfn . fromK @_ @a @LoT0
+closeDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
           => AlphaCtx -> NamePatFind -> a -> a 
-closeDefK c b = toS . gcloseK c b . fromS
-openDefK :: (GenericS a f xs, GAlphaK (RepK f) xs)
+closeDefK c b = toK @_ @a @LoT0 . gcloseK c b . fromK @_ @a @LoT0
+openDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
          => AlphaCtx -> NthPatFind -> a -> a 
-openDefK c b = toS . gopenK c b . fromS
-isPatDefK :: (GenericS a f xs, GAlphaK (RepK f) xs)
+openDefK c b = toK @_ @a @LoT0 . gopenK c b . fromK @_ @a @LoT0
+isPatDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
           => a -> DisjointSet AnyName
-isPatDefK = gisPatK . fromS
-isTermDefK :: (GenericS a f xs, GAlphaK (RepK f) xs)
+isPatDefK = gisPatK . fromK @_ @a @LoT0
+isTermDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
            => a -> All
-isTermDefK = gisTermK . fromS
+isTermDefK = gisTermK . fromK @_ @a @LoT0
 isEmbedDefK :: a -> Bool
 isEmbedDefK _ = False
-nthPatFindDefK :: (GenericS a f xs, GAlphaK (RepK f) xs)
+nthPatFindDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
                => a -> NthPatFind
-nthPatFindDefK = gnthPatFindK . fromS
-namePatFindDefK :: (GenericS a f xs, GAlphaK (RepK f) xs)
+nthPatFindDefK = gnthPatFindK . fromK @_ @a @LoT0
+namePatFindDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
                 => a -> NamePatFind
-namePatFindDefK = gnamePatFindK . fromS
-swapsDefK :: (GenericS a f xs, GAlphaK (RepK f) xs)
+namePatFindDefK = gnamePatFindK . fromK @_ @a @LoT0
+swapsDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
           => AlphaCtx -> Perm AnyName -> a -> a 
-swapsDefK ctx perm = toS . gswapsK ctx perm . fromS
-lfreshenDefK :: (LFresh m, GenericS a f xs, GAlphaK (RepK f) xs)
+swapsDefK ctx perm = toK @_ @a @LoT0 . gswapsK ctx perm . fromK @_ @a @LoT0
+lfreshenDefK :: forall m a b. (LFresh m, GenericK a LoT0, GAlphaK (RepK a) LoT0)
              => AlphaCtx -> a -> (a -> Perm AnyName -> m b) -> m b 
-lfreshenDefK ctx m cont = glfreshenK ctx (fromS m) (cont . toS)
-freshenDefK :: (Fresh m, GenericS a f xs, GAlphaK (RepK f) xs)
+lfreshenDefK ctx m cont = glfreshenK ctx (fromK @_ @a @LoT0 m) (cont . toK @_ @a @LoT0)
+freshenDefK :: forall m a. (Fresh m, GenericK a LoT0, GAlphaK (RepK a) LoT0)
             => AlphaCtx -> a -> m (a, Perm AnyName) 
-freshenDefK ctx = retractFFM . liftM (first toS) . gfreshenK ctx . fromS
-acompareDefK :: (GenericS a f xs, GAlphaK (RepK f) xs)
+freshenDefK ctx = retractFFM . liftM (first (toK @_ @a @LoT0)) . gfreshenK ctx . fromK @_ @a @LoT0
+acompareDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
              => AlphaCtx -> a -> a -> Ordering
-acompareDefK c = (gacompareK c) `on` fromS
+acompareDefK c = (gacompareK c) `on` (fromK @_ @a @LoT0)
 
 -- | The "Generic" representation version of 'Alpha'
 class GAlphaK (f :: LoT k -> *) (a :: LoT k) where
@@ -108,7 +109,7 @@ class GAlphaK (f :: LoT k -> *) (a :: LoT k) where
 
   gacompareK :: AlphaCtx -> f a -> f a -> Ordering
 
-instance (Alpha (Ty t a)) => GAlphaK (F t) a where
+instance Alpha (Ty t a) => GAlphaK (F t) a where
   gaeqK ctx (F c1) (F c2) = aeq' ctx c1 c2
   {-# INLINE gaeqK #-}
 
@@ -140,7 +141,7 @@ instance (Alpha (Ty t a)) => GAlphaK (F t) a where
 
   gacompareK ctx (F c1) (F c2) = acompare' ctx c1 c2
 
-instance GAlphaK f a => GAlphaK (M1 i c f) a where
+instance GAlphaK f a => GAlphaK (M1 i d f) a where
   gaeqK ctx (M1 f1) (M1 f2) = gaeqK ctx f1 f2
   {-# INLINE gaeqK #-}
 
@@ -421,7 +422,7 @@ instance forall (f :: LoT (k -> r) -> *) (a :: LoT r).
       Just HRefl -> gacompareK ctx f1 f2
   {-# INLINE gacompareK #-}
 
-gsubstDefK :: forall a b f xs. (GenericS a f xs, GSubstK b (RepK f) xs, Subst b a)
+gsubstDefK :: forall a b. (GenericK a LoT0, GSubstK b (RepK a) LoT0, Subst b a)
            => Name b -> b -> a -> a
 gsubstDefK n u x =
   if (isFreeName n)
@@ -429,10 +430,10 @@ gsubstDefK n u x =
     Just (SubstName m) | m == n -> u
     _ -> case (isCoerceVar x :: Maybe (SubstCoerce a b)) of
       Just (SubstCoerce m f) | m == n -> maybe x id (f u)
-      _ -> toS $ gsubstK n u (fromS x)
+      _ -> toK @_ @a @LoT0 $ gsubstK n u (fromK @_ @a @LoT0 x)
   else error $ "Cannot substitute for bound variable " ++ show n
 
-gsubstsDefK :: forall a b f xs. (GenericS a f xs, GSubstK b (RepK f) xs, Subst b a)
+gsubstsDefK :: forall a b. (GenericK a LoT0, GSubstK b (RepK a) LoT0, Subst b a)
             => [(Name b, b)] -> a -> a
 gsubstsDefK ss x
   | all (isFreeName . fst) ss =
@@ -440,7 +441,7 @@ gsubstsDefK ss x
       Just (SubstName m) | Just (_, u) <- find ((==m) . fst) ss -> u
       _ -> case isCoerceVar x :: Maybe (SubstCoerce a b) of
           Just (SubstCoerce m f) | Just (_, u) <- find ((==m) . fst) ss -> maybe x id (f u)
-          _ -> toS $ gsubstsK ss (fromS x)
+          _ -> toK @_ @a @LoT0 $ gsubstsK ss (fromK @_ @a @LoT0 x)
   | otherwise =
     error $ "Cannot substitute for bound variable in: " ++ show (map fst ss)
 

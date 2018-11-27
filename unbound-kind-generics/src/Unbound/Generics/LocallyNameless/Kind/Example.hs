@@ -51,18 +51,17 @@ example =
 
 deriving instance Show (Expr t)
 
-instance Split (Expr t) Expr (t :&&: LoT0)
-instance GenericK Expr (t :&&: LoT0) where
-  type RepK Expr =
-    ((F (Name :$: (Expr :$: V0))))
+instance GenericK (Expr t) LoT0 where
+  type RepK (Expr t) =
+    ((F (Kon (Name (Expr t)))))
     :+:
-    (ERefl {- V1 = a -} (ERefl {- V0 = b -} ( {- V2 = t -}
-      (V2 :~: ((->) :$: V1 :@: V0))
+    (ERefl {- V1 = a -} (ERefl {- V0 = b -} (
+      ((Kon t) :~: ((->) :$: V1 :@: V0))
       :=>:
       (F (Bind :$: (Name :$: (Expr :$: V1)) :@: (Expr :$: V0))) )))
     :+:
-    (ERefl {- V0 = a -} ( {- V1 = b -}
-      (F (Expr :$: ((->) :$: V0 :@: V1))) :*: F (Expr :$: V0) ))
+    (ERefl {- V0 = a -} (
+      (F (Expr :$: ((->) :$: V0 :@: (Kon t)))) :*: F (Expr :$: V0) ))
 
   fromK (V   v)   = L1 (F v)
   fromK (Lam b)   = R1 (L1 (ERefl (ERefl (C (F b)))))
