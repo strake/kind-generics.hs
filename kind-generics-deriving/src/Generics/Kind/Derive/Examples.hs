@@ -3,6 +3,7 @@
 {-# language DataKinds             #-}
 {-# language MultiParamTypeClasses #-}
 {-# language FlexibleInstances     #-}
+{-# language TypeApplications      #-}
 module Generics.Kind.Derive.Examples where
 
 import Data.PolyKinded.Functor
@@ -36,7 +37,7 @@ instance Functor Tree where
 instance Foldable Tree where
   foldMap = foldMapDefault
 instance Traversable Tree where
-  traverse = traverseDefault (Proxy :: Proxy VZ)
+  traverse = traverseDefault @Tree @(_ :&&: LoT0) @(_ :&&: LoT0) (Proxy :: Proxy VZ)
 
 fmapEither :: (a -> b) -> Either e a -> Either e b
 fmapEither = fmapDefaultOne

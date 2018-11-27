@@ -11,7 +11,6 @@ import Data.PolyKinded.Functor
 import Generics.SOP.Kind
 import Generics.SOP.Kind.Derive.Functor
 
-instance Split (Maybe a) Maybe (a ':&&: 'LoT0)
 instance GenericK Maybe (a ':&&: 'LoT0) where
   type CodeK Maybe = '[ '[] ':=>: '[], '[] ':=>: '[V0] ]
 

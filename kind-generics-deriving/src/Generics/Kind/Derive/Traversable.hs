@@ -16,11 +16,12 @@ module Generics.Kind.Derive.Traversable where
 import Data.Proxy
 import Generics.Kind
 
-traverseDefault :: (GenericS r f as, GenericS t f bs,
+traverseDefault :: forall f as bs a b g v.
+                   (GenericK f as, GenericK f bs,
                     GTraversable (RepK f) v a as b bs,
                     Applicative g)
-                => Proxy v -> (a -> g b) -> r -> g t
-traverseDefault p f = fmap toS . gtraverse p f . fromS
+                => Proxy v -> (a -> g b) -> f :@@: as -> g (f :@@: bs)
+traverseDefault p f = fmap (toK @_ @f @bs) . gtraverse p f . fromK @_ @f @as
 
 class GTraversable (f :: LoT k -> *) (v :: TyVar k *)
                    (a :: *) (as :: LoT k) (b :: *) (bs :: LoT k) where

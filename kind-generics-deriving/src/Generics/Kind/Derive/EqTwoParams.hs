@@ -17,9 +17,9 @@ import Generics.Kind
 import GHC.TypeLits
 import Type.Reflection
 
-geq2' :: forall t f x. (GenericS t f x, GEq2 (RepK f) x x)
+geq2' :: forall t. (GenericK t LoT0, GEq2 (RepK t) LoT0 LoT0)
       => t -> t -> Bool
-geq2' x y = geq2 (fromS x) (fromS y)
+geq2' x y = geq2 (fromK @_ @t @LoT0 x) (fromK @_ @t @LoT0 y)
 
 class GEq2 (f :: LoT k -> *) (xs :: LoT k) (ys :: LoT k) where
   geq2 :: f xs -> f ys -> Bool

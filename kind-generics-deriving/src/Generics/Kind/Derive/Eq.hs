@@ -17,9 +17,9 @@ import Generics.Kind
 import GHC.TypeLits
 import Type.Reflection
 
-geq' :: forall t f x. (GenericS t f x, GEq (RepK f) x)
+geq' :: forall t. (GenericK t LoT0, GEq (RepK t) LoT0)
      => t -> t -> Bool
-geq' x y = geq (fromS x) (fromS y)
+geq' x y = geq (fromK @_ @t @LoT0 x) (fromK @_ @t @LoT0 y)
 
 class GEq (f :: LoT k -> *) (tys :: LoT k) where
   geq :: f tys -> f tys -> Bool
@@ -44,20 +44,8 @@ instance (Eq (Ty t tys)) => GEq (F t) tys where
 instance (Ty c tys => GEq f tys) => GEq (c :=>: f) tys where
   geq (C x) (C y) = geq x y
 
-instance TypeError (Text "Existentials are not supported by GEq")
-  => GEq (E f) tys where
-  geq _ _ = undefined
-
-{-
 instance (forall t. (GEq f (t :&&: tys), Typeable t)) => GEq (E f) tys where
   geq (E (x :: f (t1 :&&: tys))) (E (y :: f (t2 :&&: tys)))
-    = case eqTypeRep (typeRep @t1) (typeRep @t2) of
-        Nothing    -> False
-        Just HRefl -> geq x y
--}
-
-instance (forall t. GEq f (t :&&: tys)) => GEq (ERefl f) tys where
-  geq (ERefl (x :: f (t1 :&&: tys))) (ERefl (y :: f (t2 :&&: tys)))
     = case eqTypeRep (typeRep @t1) (typeRep @t2) of
         Nothing    -> False
         Just HRefl -> geq x y

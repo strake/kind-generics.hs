@@ -23,8 +23,8 @@ class KFunctor (f :: k) (v :: Variances) (as :: LoT k) (bs :: LoT k) | f -> v wh
 
 -- | The generalized version of 'fmap', 'bimap', 'dimap', and so on.
 -- This version uses 'Split' to obtain better type inference.
-kmapo :: forall t f v as bs. (Split t f as, KFunctor f v as bs)
-      => Mappings v as bs -> t -> f :@@: bs
+kmapo :: forall f v as bs. (KFunctor f v as bs)
+      => Mappings v as bs -> f :@@: as -> f :@@: bs
 kmapo = kfmap @_ @f
 
 -- ** Mappings of different variance

@@ -5,15 +5,16 @@
 {-# language TypeApplications    #-}
 {-# language TypeOperators       #-}
 {-# language DataKinds           #-}
+{-# language AllowAmbiguousTypes #-}
 module Generics.SOP.Kind.Derive.Eq where
 
 import Generics.SOP.Kind
 import Type.Reflection
 
-geq' :: forall t f x.
-        (GenericS t f x, AllFields Eq (CodeK f) x)
-     => t -> t -> Bool
-geq' x y = geq (fromS x) (fromS y)
+geq' :: forall f x.
+        (GenericK f x, AllFields Eq (CodeK f) x)
+     => f :@@: x -> f :@@: x -> Bool
+geq' x y = geq (fromK @_ @f @x x) (fromK @_ @f @x y)
 
 geq :: forall f tys. AllFields Eq f tys
     => RepK f tys -> RepK f tys -> Bool

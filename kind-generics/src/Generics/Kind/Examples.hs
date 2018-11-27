@@ -7,6 +7,7 @@
 {-# language GADTs                 #-}
 {-# language DeriveGeneric         #-}
 {-# language QuantifiedConstraints #-}
+{-# language UndecidableInstances  #-}
 module Generics.Kind.Examples where
 
 import Data.PolyKinded.Functor
@@ -17,22 +18,35 @@ import Generics.Kind
 
 -- Obtained from Generic
 
-instance Split (Maybe a) Maybe (a ':&&: 'LoT0)
 instance GenericK Maybe (a ':&&: 'LoT0) where
   type RepK Maybe = U1 :+: F V0
+instance GenericK (Maybe a) LoT0 where
+  type RepK (Maybe a) = SubstRep (RepK Maybe) a
+  fromK = fromRepK
+  toK   = toRepK
 
-instance Split (Either a b) Either (a ':&&: b ':&&: LoT0)
 instance GenericK Either (a ':&&: b ':&&: LoT0) where
   type RepK Either = F V0 :+: F V1
+instance GenericK (Either a) (b ':&&: LoT0) where
+  type RepK (Either a) = SubstRep (RepK Either) a
+  fromK = fromRepK
+  toK   = toRepK
+instance GenericK (Either a b) LoT0 where
+  type RepK (Either a b) = SubstRep (RepK (Either a)) b
+  fromK = fromRepK
+  toK   = toRepK
 
 -- From the docs
 
 data Tree a = Branch (Tree a) (Tree a) | Leaf a
             deriving Generic
 
-instance Split (Tree a) Tree (a ':&&: 'LoT0)
 instance GenericK Tree (a ':&&: 'LoT0) where
   type RepK Tree = F (Tree :$: V0) :*: F (Tree :$: V0) :+: F V0
+instance GenericK (Tree a) LoT0 where
+  type RepK (Tree a) = SubstRep (RepK Tree) a
+  fromK = fromRepK
+  toK   = toRepK
 
 -- Hand-written instance
 
@@ -40,7 +54,6 @@ data WeirdTree a where
   WeirdBranch :: WeirdTree a -> WeirdTree a -> WeirdTree a 
   WeirdLeaf   :: Show a => t -> a -> WeirdTree a
 
-instance Split (WeirdTree a) WeirdTree (a ':&&: 'LoT0)
 instance GenericK WeirdTree (a ':&&: 'LoT0) where
   type RepK WeirdTree
     = F (WeirdTree :$: V0) :*: F (WeirdTree :$: V0)
@@ -56,16 +69,26 @@ instance GenericK WeirdTree (a ':&&: 'LoT0) where
 
 data WeirdTreeR a where
   WeirdBranchR :: WeirdTreeR a -> WeirdTreeR a -> WeirdTreeR a 
-  WeirdLeafR   :: (Show a, Typeable t, Eq t) => t -> a -> WeirdTreeR a
+  WeirdLeafR   :: (Show a, Eq t, Typeable t) => t -> a -> WeirdTreeR a
 
-instance Split (WeirdTreeR a) WeirdTreeR (a ':&&: 'LoT0)
 instance GenericK WeirdTreeR (a ':&&: 'LoT0) where
   type RepK WeirdTreeR
     = F (WeirdTreeR :$: V0) :*: F (WeirdTreeR :$: V0)
-      :+: ERefl ((Show :$: V1) :=>: ((Eq :$: V0) :=>: (F V0 :*: F V1)))
+      :+: E ((Show :$: V1) :=>: ((Eq :$: V0) :=>: ((Typeable :$: V0) :=>: (F V0 :*: F V1))))
 
   fromK (WeirdBranchR l r) = L1 $                 F l :*: F r
-  fromK (WeirdLeafR   a x) = R1 $ ERefl $ C $ C $ F a :*: F x
+  fromK (WeirdLeafR   a x) = R1 $ E $ C $ C $ C $ F a :*: F x
 
   toK (L1 (F l :*: F r)) = WeirdBranchR l r
-  toK (R1 (ERefl (C (C (F a :*: F x))))) = WeirdLeafR a x
+  toK (R1 (E (C (C (C (F a :*: F x)))))) = WeirdLeafR a x
+
+instance GenericK (WeirdTreeR a) 'LoT0 where
+  type RepK (WeirdTreeR a)
+    = F (Kon (WeirdTreeR a)) :*: F (Kon (WeirdTreeR a))
+    :+: E ((Kon (Show a)) :=>: ((Eq :$: V0) :=>: ((Typeable :$: V0) :=>: (F V0 :*: F (Kon a)))))
+
+  fromK (WeirdBranchR l r) = L1 $                 F l :*: F r
+  fromK (WeirdLeafR   a x) = R1 $ E $ C $ C $ C $ F a :*: F x
+
+  toK (L1 (F l :*: F r)) = WeirdBranchR l r
+  toK (R1 (E (C (C (C (F a :*: F x)))))) = WeirdLeafR a x

@@ -16,13 +16,14 @@ module Generics.Kind.Derive.FunctorPosition where
 import Data.Proxy
 import Generics.Kind
 
-fmapDefaultPos :: (GenericS r f as, GenericS t f bs,
+fmapDefaultPos :: forall f a as b bs v.
+                  (GenericK f as, GenericK f bs,
                    GFunctorPos (RepK f) v a as b bs)
-               => Proxy v -> (a -> b) -> r -> t
-fmapDefaultPos p f = toS . gfmapp p f . fromS
+               => Proxy v -> (a -> b) -> f :@@: as -> f :@@: bs
+fmapDefaultPos p f = toK @_ @f @bs . gfmapp p f . fromK @_ @f @as
 
 class GFunctorPos (f :: LoT k -> *) (v :: TyVar k *)
-                (a :: *) (as :: LoT k) (b :: *) (bs :: LoT k) where
+                  (a :: *) (as :: LoT k) (b :: *) (bs :: LoT k) where
   gfmapp :: Proxy v -> (a -> b) -> f as -> f bs
 
 gfmapp' :: forall as bs f v a b. (GFunctorPos f v a as b bs)

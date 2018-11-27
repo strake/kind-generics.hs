@@ -15,7 +15,7 @@ module Data.PolyKinded (
   -- * Lists of types and application
   LoT(..), (:@@:)
   -- * Splitting types
-, SplitF, Nat(..), TyEnv(..), SplitN, Split
+, SplitF, Nat(..), TyEnv(..), SplitN
 ) where
 
 infixr 5 :&&:
@@ -64,11 +64,3 @@ type family SplitN (n :: Nat) t :: TyEnv where
 type family SplitN' (n :: Nat) (t :: d) (p :: LoT d) :: TyEnv where
   SplitN' 'Z     t            acc = 'TyEnv t acc
   SplitN' ('S n) (t (a :: l)) acc = SplitN' n t (a ':&&: acc)
-
--- | @Split t f x@ declares that the default way to split
--- the type @t@ is into a type constructor @f@ and a list
--- of types @x@.
---
--- > instance Split (Either a b) Either (a :&&: b :&&: LoT0)
-class (x ~ SplitF t f, t ~ (f :@@: x))
-      => Split t (f :: k) (x :: LoT k) | t -> k f x

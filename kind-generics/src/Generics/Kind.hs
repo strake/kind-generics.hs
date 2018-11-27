@@ -27,7 +27,8 @@ module Generics.Kind (
 , GenericK(..)
 , GenericF, fromF, toF
 , GenericN, fromN, toN
-, GenericS, fromS, toS
+  -- * Getting more instances almost for free
+, fromRepK, toRepK, SubstRep
   -- * Bridging with "GHC.Generics"
 , Conv(..)
 ) where
@@ -123,26 +124,15 @@ fromN = fromK @_ @f
 toN :: forall n t f x. GenericN n t f x => RepK f x -> t
 toN = toK @_ @f
 
--- | @GenericS t f x@ states that the ground type @t@ is split by
--- default as the constructor @f@ and a list of types @x$, and that
--- a 'GenericK' instance exists for that constructor.
---
--- This constraint provides an external interface similar to that
--- provided by 'Generic' in "GHC.Generics".
-type GenericS t f x = (Split t f x, GenericK f x)
-fromS :: forall t f x. GenericS t f x => t -> RepK f x
-fromS = fromF @f
-toS :: forall t f x. GenericS t f x => RepK f x -> t
-toS = toF @f
-
 -- CONVERSION BETWEEN FEWER AND MORE ARGUMENTS
 
-instance {-# OVERLAPPABLE #-} forall (f :: k -> ks) x xs.
-         (GenericK f (x ':&&: xs), SubstRep' (RepK f) x xs)
-         => GenericK (f x) xs where
-  type RepK (f x) = SubstRep (RepK f) x
-  fromK = substRep . fromK @_ @f @(x ':&&: xs)
-  toK   = toK @_ @f @(x ':&&: xs) . unsubstRep
+fromRepK :: forall f x xs. (GenericK f (x ':&&: xs), SubstRep' (RepK f) x xs)
+         => f x :@@: xs -> SubstRep (RepK f) x xs
+fromRepK = substRep . fromK @_ @f @(x ':&&: xs)
+
+toRepK :: forall f x xs. (GenericK f (x ':&&: xs), SubstRep' (RepK f) x xs)
+       => SubstRep (RepK f) x xs -> f x :@@: xs
+toRepK = toK @_ @f @(x ':&&: xs) . unsubstRep
 
 class SubstRep' (f :: LoT (t -> k) -> *) (x :: t) (xs :: LoT k) where
   type family SubstRep f x :: LoT k -> *

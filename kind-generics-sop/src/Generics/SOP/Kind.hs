@@ -24,7 +24,6 @@ module Generics.SOP.Kind (
 , RepK, GenericK(..)
 , GenericF, fromF, toF
 , GenericN, fromN, toN
-, GenericS, fromS, toS
 ) where
 
 import Data.Kind
@@ -124,12 +123,6 @@ fromN :: forall n t f x. GenericN n t f x => t -> RepK (CodeK f) x
 fromN = fromK @_ @f
 toN :: forall n t f x. GenericN n t f x => RepK (CodeK f) x -> t
 toN = toK @_ @f
-
-type GenericS t f x = (Split t f x, GenericK f x)
-fromS :: forall f t x. GenericS t f x => t -> RepK (CodeK f) x
-fromS = fromF @f
-toS :: forall f t x. GenericS t f x => RepK (CodeK f) x -> t
-toS = toF @f
 
 -- CONVERSION
 

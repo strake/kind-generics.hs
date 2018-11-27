@@ -3,6 +3,5 @@ packages:
 - kind-generics/
 - kind-generics-sop/
 - kind-generics-deriving/
-- unbound-kind-generics/
 extra-deps: []
 resolver: nightly-2018-11-20
