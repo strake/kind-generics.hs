@@ -1,3 +1,5 @@
 packages: kind-apply/
           kind-generics/
           kind-generics-sop/
+          kind-generics-deriving/
+          unbound-kind-generics/
