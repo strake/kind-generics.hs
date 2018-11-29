@@ -12,6 +12,7 @@ module Generics.Kind.Examples where
 
 import Data.PolyKinded.Functor
 import GHC.Generics (Generic)
+import GHC.TypeLits
 import Type.Reflection
 
 import Generics.Kind
@@ -48,6 +49,27 @@ instance GenericK (Tree a) LoT0 where
   fromK = fromRepK
   toK   = toRepK
 
+-- Data family
+
+data family HappyFamily t
+data instance HappyFamily (Maybe a) = HFM Bool
+data instance HappyFamily [a]       = HFL a
+
+instance GenericK HappyFamily (a ':&&: 'LoT0) where
+  type RepK HappyFamily = TypeError (Text "Cannot describe this family uniformly")
+  fromK = undefined
+  toK   = undefined
+
+instance GenericK (HappyFamily (Maybe a)) 'LoT0 where
+  type RepK (HappyFamily (Maybe a)) = F (Kon Bool)
+  fromK (HFM x) = F   x
+  toK   (F   x) = HFM x
+
+instance GenericK (HappyFamily [a]) 'LoT0 where
+  type RepK (HappyFamily [a]) = F (Kon a)
+  fromK (HFL x) = F   x
+  toK   (F   x) = HFL x
+
 -- Hand-written instance
 
 data WeirdTree a where
@@ -74,21 +96,21 @@ data WeirdTreeR a where
 instance GenericK WeirdTreeR (a ':&&: 'LoT0) where
   type RepK WeirdTreeR
     = F (WeirdTreeR :$: V0) :*: F (WeirdTreeR :$: V0)
-      :+: E ((Show :$: V1) :=>: ((Eq :$: V0) :=>: ((Typeable :$: V0) :=>: (F V0 :*: F V1))))
+      :+: E (((Show :$: V1) :&: (Eq :$: V0) :&: (Typeable :$: V0)) :=>: (F V0 :*: F V1))
 
-  fromK (WeirdBranchR l r) = L1 $                 F l :*: F r
-  fromK (WeirdLeafR   a x) = R1 $ E $ C $ C $ C $ F a :*: F x
+  fromK (WeirdBranchR l r) = L1 $         F l :*: F r
+  fromK (WeirdLeafR   a x) = R1 $ E $ C $ F a :*: F x
 
   toK (L1 (F l :*: F r)) = WeirdBranchR l r
-  toK (R1 (E (C (C (C (F a :*: F x)))))) = WeirdLeafR a x
+  toK (R1 (E (C (F a :*: F x)))) = WeirdLeafR a x
 
 instance GenericK (WeirdTreeR a) 'LoT0 where
   type RepK (WeirdTreeR a)
     = F (Kon (WeirdTreeR a)) :*: F (Kon (WeirdTreeR a))
-    :+: E ((Kon (Show a)) :=>: ((Eq :$: V0) :=>: ((Typeable :$: V0) :=>: (F V0 :*: F (Kon a)))))
+    :+: E ((Kon (Show a) :&: (Eq :$: V0) :&: (Typeable :$: V0)) :=>: ((F V0 :*: F (Kon a))))
 
-  fromK (WeirdBranchR l r) = L1 $                 F l :*: F r
-  fromK (WeirdLeafR   a x) = R1 $ E $ C $ C $ C $ F a :*: F x
+  fromK (WeirdBranchR l r) = L1 $         F l :*: F r
+  fromK (WeirdLeafR   a x) = R1 $ E $ C $ F a :*: F x
 
   toK (L1 (F l :*: F r)) = WeirdBranchR l r
-  toK (R1 (E (C (C (C (F a :*: F x)))))) = WeirdLeafR a x
+  toK (R1 (E (C (F a :*: F x)))) = WeirdLeafR a x

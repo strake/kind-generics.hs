@@ -166,6 +166,7 @@ type family SubstAtom (f :: Atom (t -> k) d) (x :: t) :: Atom k d where
   SubstAtom ('Var ('VS v)) x = 'Var v
   SubstAtom ('Kon t)       x = 'Kon t
   SubstAtom (t1 ':@: t2)   x = (SubstAtom t1 x) ':@: (SubstAtom t2 x)
+  SubstAtom (t1 ':&: t2)   x = (SubstAtom t1 x) ':&: (SubstAtom t2 x)
 
 -- CONVERSION BETWEEN GHC.GENERICS AND KIND-GENERICS
 
