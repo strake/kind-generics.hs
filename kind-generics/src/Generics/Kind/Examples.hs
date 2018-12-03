@@ -150,28 +150,15 @@ instance GenericK P (k :&&: a :&&: LoT0) where
 data P' j (a :: k) where
   P' :: forall k (a :: k). P' k a
 
-instance GenericK (P' j) ((a :: k) :&&: LoT0) where
-  type RepK (P' j) = (KindOf Var0 :~: Kon j) :=>: U1
-  fromK P' = C U1
-  toK   (C U1) = P'
-
-instance GenericK P' (j :&&: (a :: k) :&&: LoT0) where
-  type RepK P' = (KindOf Var1 :~: Var0) :=>: U1
-  fromK P' = C U1
-  toK   (C U1) = P'
-
-{- Without KindOf
-
-instance GenericK (P' j :: k -> Type) (a :&&: LoT0) where
-  type RepK (P' j :: k -> Type) = (Kon k :~: Kon j) :=>: U1
+instance GenericK (P' j :: k -> *) (a :&&: LoT0) where
+  type RepK (P' j :: k -> *) = (Kon k :~: Kon j) :=>: U1
   fromK P' = C U1
   toK (C U1) = P'
 
-instance GenericK (P' :: Type -> k -> Type) (j :&&: a :&&: LoT0) where
-  type RepK (P' :: Type -> k -> Type) = (Kon k :~: V0) :=>: U1
+instance GenericK (P' :: * -> k -> *) (j :&&: a :&&: LoT0) where
+  type RepK (P' :: * -> k -> *) = (Kon k :~: Var0) :=>: U1
   fromK P' = C U1
   toK (C U1) = P'
--}
 
 -- Rank-N types
 

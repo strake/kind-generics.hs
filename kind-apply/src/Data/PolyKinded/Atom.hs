@@ -34,7 +34,6 @@ data Atom d k where
   Kon    :: k         -> Atom d k
   (:@:)  :: Atom d (k1 -> k2) -> Atom d k1 -> Atom d k2
   (:&:)  :: Atom d Constraint -> Atom d Constraint -> Atom d Constraint
-  KindOf :: Atom d k -> Atom d (*)
   ForAll :: Atom (d1 -> d) (*) -> Atom d (*)
 
 type f :$:  x = 'Kon f ':@: x
@@ -42,15 +41,14 @@ type a :~:  b = 'Kon (~) ':@: a ':@: b
 type a :~~: b = 'Kon (~~) ':@: a ':@: b
 
 type family Ty (t :: Atom d k) (tys :: LoT d) :: k where
-  Ty ('Var 'VZ)     (t ':&&: ts)  = t
-  Ty ('Var ('VS v)) (t ':&&: ts)  = Ty ('Var v) ts
-  Ty ('Kon t)       tys           = t
-  Ty (f ':@: x)     tys           = (Ty f tys) (Ty x tys)
-  Ty (c ':&: d)     tys           = (Ty c tys, Ty d tys)
-  Ty (KindOf (a :: Atom d k)) tys = k
-  Ty (ForAll f)     tys           = ForAllTy f tys
+  Ty ('Var 'VZ)     (t ':&&: ts) = t
+  Ty ('Var ('VS v)) (t ':&&: ts) = Ty ('Var v) ts
+  Ty ('Kon t)       tys          = t
+  Ty (f ':@: x)     tys          = (Ty f tys) (Ty x tys)
+  Ty (c ':&: d)     tys          = (Ty c tys, Ty d tys)
+  Ty (ForAll f)     tys          = ForAllTy f tys
 
-data ForAllTy (f :: Atom (d1 -> d) (*)) (tys :: LoT d) where
+newtype ForAllTy (f :: Atom (d1 -> d) (*)) (tys :: LoT d) where
   ForAllTy :: (forall t. Ty f (t ':&&: tys)) -> ForAllTy f tys
 
 type family Satisfies (cs :: [Atom d Constraint]) (tys :: LoT d) :: Constraint where
