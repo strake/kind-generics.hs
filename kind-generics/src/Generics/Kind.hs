@@ -201,8 +201,8 @@ instance {-# OVERLAPS #-} (Conv f f' tys) => Conv (M1 i c f) (M1 i c f') tys whe
 
 instance (k ~ Ty t tys, Conv f f' tys)
          => Conv (k GG.:=>: f) (t :=>: f') tys where
-  toGhcGenerics (C x) = SuchThat (toGhcGenerics x)
-  toKindGenerics (SuchThat x) = C (toKindGenerics x)
+  toGhcGenerics (C x) = GG.SuchThat (toGhcGenerics x)
+  toKindGenerics (GG.SuchThat x) = C (toKindGenerics x)
 
 instance (k ~ Ty t tys) => Conv (K1 p k) (F t) tys where
   toGhcGenerics  (F x)  = K1 x

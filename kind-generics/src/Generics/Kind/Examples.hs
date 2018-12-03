@@ -166,7 +166,6 @@ data Ranky = MkRanky (forall a. a -> a)
 
 instance GenericK Ranky LoT0 where
   type RepK Ranky = F (ForAll ((->) :$: Var0 :@: Var0))
-
   fromK (MkRanky x) = F (ForAllTy x)
   toK (F (ForAllTy x)) = MkRanky x
 
@@ -174,6 +173,13 @@ newtype Ranky2 b = MkRanky2 ((forall a. a -> a) -> b)
 
 instance GenericK Ranky2 (b ':&&: LoT0) where
   type RepK Ranky2 = F ((->) :$: ForAll ((->) :$: Var0 :@: Var0) :@: Var0)
-
   fromK (MkRanky2 f) = F (\(ForAllTy x) -> f x)
   toK (F f) = MkRanky2 (\x -> f (ForAllTy x))
+
+data Shower a where
+  MkShower :: (Show a => a -> String) -> Shower a
+
+instance GenericK Shower (a ':&&: LoT0) where
+  type RepK Shower = F ((Show :$: Var0) :=>>: ((->) :$: Var0 :@: Kon String))
+  fromK (MkShower f) = F (SuchThatTy f)
+  toK (F (SuchThatTy f)) = MkShower f

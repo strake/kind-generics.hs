@@ -196,8 +196,8 @@ instance ConvProduct (f :*: gs) f' tys
 
 instance (c ~ (Ty c' tys), ConvConstructor f (cs ':=>: f') tys)
          => ConvConstructor (c GG.:=>: f) ((c' ': cs) ':=>: f') tys where
-  toGhcGenericsC  (C_ x) = SuchThat (toGhcGenericsC x)
-  toKindGenericsC (SuchThat x) = C_ (toKindGenericsC x)
+  toGhcGenericsC  (C_ x) = GG.SuchThat (toGhcGenericsC x)
+  toKindGenericsC (GG.SuchThat x) = C_ (toKindGenericsC x)
 
 -- Products
 
