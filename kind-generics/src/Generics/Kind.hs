@@ -21,7 +21,7 @@ module Generics.Kind (
   module Data.PolyKinded
 , module Data.PolyKinded.Atom
   -- * Generic representation types
-, (:+:)(..), (:*:)(..), U1(..), M1(..)
+, (:+:)(..), (:*:)(..), V1(..), U1(..), M1(..)
 , F(..), (:=>:)(..), E(..)
   -- * Generic type classes
 , GenericK(..)
