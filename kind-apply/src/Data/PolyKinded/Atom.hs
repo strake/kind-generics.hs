@@ -30,6 +30,7 @@ data Atom d k where
   Kon   :: k         -> Atom d k
   (:@:) :: Atom d (k1 -> k2) -> Atom d k1 -> Atom d k2
   (:&:) :: Atom d Constraint -> Atom d Constraint -> Atom d Constraint
+  KindOf :: Atom d k -> Atom d (*)
 
 type f :$: x = 'Kon f ':@: x
 type a :~: b = 'Kon (~) ':@: a ':@: b
@@ -40,6 +41,7 @@ type family Ty (t :: Atom d k) (tys :: LoT d) :: k where
   Ty ('Kon t)       tys          = t
   Ty (f ':@: x)     tys          = (Ty f tys) (Ty x tys)
   Ty (c ':&: d)     tys          = (Ty c tys, Ty d tys)
+  Ty (KindOf (x :: Atom d k)) tys = k
 
 type family Satisfies (cs :: [Atom d Constraint]) (tys :: LoT d) :: Constraint where
   Satisfies '[]       tys = ()

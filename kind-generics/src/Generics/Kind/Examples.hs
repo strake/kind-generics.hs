@@ -2,6 +2,7 @@
 {-# language TypeOperators         #-}
 {-# language TypeFamilies          #-}
 {-# language DataKinds             #-}
+{-# language PolyKinds             #-}
 {-# language MultiParamTypeClasses #-}
 {-# language FlexibleInstances     #-}
 {-# language GADTs                 #-}
@@ -13,7 +14,7 @@ module Generics.Kind.Examples where
 import Data.PolyKinded.Functor
 import GHC.Generics (Generic)
 import GHC.TypeLits
-import Type.Reflection
+import Type.Reflection (Typeable)
 
 import Generics.Kind
 
@@ -114,3 +115,41 @@ instance GenericK (WeirdTreeR a) 'LoT0 where
 
   toK (L1 (F l :*: F r)) = WeirdBranchR l r
   toK (R1 (E (C (F a :*: F x)))) = WeirdLeafR a x
+
+-- Weird-kinded types
+
+data T (a :: k) where
+  MkT :: forall (a :: *). Maybe a -> T a
+
+instance GenericK (T :: k -> *) (a :&&: LoT0) where
+  type RepK (T :: k -> *) =
+    Kon (k ~ (*)) :=>: F (Maybe :$: ForceKind (V0 :: Atom (* -> *) *) (Atom (k -> *) *))
+
+  fromK (MkT x) = C (F x)
+  toK (C (F x)) = MkT x
+
+data P k (a :: k) where
+  P :: forall k (a :: k). P k a
+
+instance GenericK (P k) ((a :: k) :&&: LoT0) where
+  type RepK (P k) = U1
+  fromK P  = U1
+  toK   U1 = P
+
+{- This does not work
+instance GenericK P (k :&&: a :&&: LoT0) where
+  type RepK P = KindOf V1 :~: V0 :=>: U1
+-}
+
+data P' j (a :: k) where
+  P' :: forall k (a :: k). P' k a
+
+instance GenericK (P' j) ((a :: k) :&&: LoT0) where
+  type RepK (P' j) = (KindOf V0 :~: Kon j) :=>: U1
+  fromK P' = C U1
+  toK   (C U1) = P'
+
+instance GenericK P' (j :&&: (a :: k) :&&: LoT0) where
+  type RepK P' = (KindOf V1 :~: V0) :=>: U1
+  fromK P' = C U1
+  toK   (C U1) = P'
