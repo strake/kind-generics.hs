@@ -9,12 +9,14 @@
 {-# language DeriveGeneric         #-}
 {-# language QuantifiedConstraints #-}
 {-# language UndecidableInstances  #-}
+{-# language RankNTypes            #-}
 module Generics.Kind.Examples where
 
 import Data.PolyKinded.Functor
 import GHC.Generics (Generic)
 import GHC.TypeLits
 import Type.Reflection (Typeable)
+import Data.Proxy
 
 import Generics.Kind
 
@@ -170,3 +172,13 @@ instance GenericK (P' :: Type -> k -> Type) (j :&&: a :&&: LoT0) where
   fromK P' = C U1
   toK (C U1) = P'
 -}
+
+-- Rank-N types
+
+data Ranky = MkRanky (forall a. a -> a)
+
+instance GenericK Ranky LoT0 where
+  type RepK Ranky = F (ForAll ((->) :$: Var0 :@: Var0))
+
+  fromK (MkRanky x) = F (ForAllTy x)
+  toK (F (ForAllTy x)) = MkRanky x
