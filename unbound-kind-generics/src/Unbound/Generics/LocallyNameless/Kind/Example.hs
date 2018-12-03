@@ -55,16 +55,16 @@ instance GenericK (Expr t) LoT0 where
   type RepK (Expr t) =
     ((F (Kon (Name (Expr t)))))
     :+:
-    (E {- V1 = a -} ((Typeable :$: V0) :=>:
-      (E {- V0 = b -} ((Typeable :$: V0) :=>:
-        (((Kon t) :~: ((->) :$: V1 :@: V0))
+    (E {- Var1 = a -} ((Typeable :$: Var0) :=>:
+      (E {- Var0 = b -} ((Typeable :$: Var0) :=>:
+        (((Kon t) :~: ((->) :$: Var1 :@: Var0))
          :=>:
-         (F (Bind :$: (Name :$: (Expr :$: V1)) :@: (Expr :$: V0)))) ))))
+         (F (Bind :$: (Name :$: (Expr :$: Var1)) :@: (Expr :$: Var0)))) ))))
     :+:
-    (E {- V0 = a -} (
-      (Typeable :$: V0)
+    (E {- Var0 = a -} (
+      (Typeable :$: Var0)
       :=>:
-      ((F (Expr :$: ((->) :$: V0 :@: (Kon t)))) :*: F (Expr :$: V0)) ))
+      ((F (Expr :$: ((->) :$: Var0 :@: (Kon t)))) :*: F (Expr :$: Var0)) ))
 
   fromK (V   v)   = L1 (F v)
   fromK (Lam b)   = R1 (L1 (E (C (E (C (C (F b)))))))

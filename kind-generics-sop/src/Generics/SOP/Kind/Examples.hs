@@ -12,7 +12,7 @@ import Generics.SOP.Kind
 import Generics.SOP.Kind.Derive.Functor
 
 instance GenericK Maybe (a ':&&: 'LoT0) where
-  type CodeK Maybe = '[ '[] ':=>: '[], '[] ':=>: '[V0] ]
+  type CodeK Maybe = '[ '[] ':=>: '[], '[] ':=>: '[Var0] ]
 
 instance KFunctor Maybe '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
   kfmap = kfmapDefault

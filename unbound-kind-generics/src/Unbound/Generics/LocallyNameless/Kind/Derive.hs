@@ -333,7 +333,7 @@ instance (Ty c a => GAlphaK f a) => GAlphaK (c :=>: f) a where
 instance forall (f :: LoT (k -> r) -> *) (a :: LoT r).
          (Typeable k, Typeable r, Typeable f, Typeable a,  -- Just to please GHC
           (forall (t :: k). (Typeable t => GAlphaK f (t :&&: a))))
-         => GAlphaK (E ((Typeable :$: V0) :=>: f)) a where
+         => GAlphaK (E ((Typeable :$: Var0) :=>: f)) a where
   gaeqK ctx (E (C (f1 :: f (t1 :&&: a)))) (E (C (f2 :: f (t2 :&&: a)))) =
     case eqTypeRep (typeRep @t1) (typeRep @t2) of
       Nothing    -> False

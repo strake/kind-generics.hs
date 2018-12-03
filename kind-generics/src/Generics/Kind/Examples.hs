@@ -21,14 +21,14 @@ import Generics.Kind
 -- Obtained from Generic
 
 instance GenericK Maybe (a ':&&: 'LoT0) where
-  type RepK Maybe = U1 :+: F V0
+  type RepK Maybe = U1 :+: F Var0
 instance GenericK (Maybe a) LoT0 where
   type RepK (Maybe a) = SubstRep (RepK Maybe) a
   fromK = fromRepK
   toK   = toRepK
 
 instance GenericK Either (a ':&&: b ':&&: LoT0) where
-  type RepK Either = F V0 :+: F V1
+  type RepK Either = F Var0 :+: F Var1
 instance GenericK (Either a) (b ':&&: LoT0) where
   type RepK (Either a) = SubstRep (RepK Either) a
   fromK = fromRepK
@@ -44,7 +44,7 @@ data Tree a = Branch (Tree a) (Tree a) | Leaf a
             deriving Generic
 
 instance GenericK Tree (a ':&&: 'LoT0) where
-  type RepK Tree = F (Tree :$: V0) :*: F (Tree :$: V0) :+: F V0
+  type RepK Tree = F (Tree :$: Var0) :*: F (Tree :$: Var0) :+: F Var0
 instance GenericK (Tree a) LoT0 where
   type RepK (Tree a) = SubstRep (RepK Tree) a
   fromK = fromRepK
@@ -79,8 +79,8 @@ data WeirdTree a where
 
 instance GenericK WeirdTree (a ':&&: 'LoT0) where
   type RepK WeirdTree
-    = F (WeirdTree :$: V0) :*: F (WeirdTree :$: V0)
-      :+: E ((Show :$: V1) :=>: (F V0 :*: F V1))
+    = F (WeirdTree :$: Var0) :*: F (WeirdTree :$: Var0)
+      :+: E ((Show :$: Var1) :=>: (F Var0 :*: F Var1))
 
   fromK (WeirdBranch l r) = L1 $         F l :*: F r
   fromK (WeirdLeaf   a x) = R1 $ E $ C $ F a :*: F x
@@ -96,8 +96,8 @@ data WeirdTreeR a where
 
 instance GenericK WeirdTreeR (a ':&&: 'LoT0) where
   type RepK WeirdTreeR
-    = F (WeirdTreeR :$: V0) :*: F (WeirdTreeR :$: V0)
-      :+: E (((Show :$: V1) :&: (Eq :$: V0) :&: (Typeable :$: V0)) :=>: (F V0 :*: F V1))
+    = F (WeirdTreeR :$: Var0) :*: F (WeirdTreeR :$: Var0)
+      :+: E (((Show :$: Var1) :&: (Eq :$: Var0) :&: (Typeable :$: Var0)) :=>: (F Var0 :*: F Var1))
 
   fromK (WeirdBranchR l r) = L1 $         F l :*: F r
   fromK (WeirdLeafR   a x) = R1 $ E $ C $ F a :*: F x
@@ -108,7 +108,7 @@ instance GenericK WeirdTreeR (a ':&&: 'LoT0) where
 instance GenericK (WeirdTreeR a) 'LoT0 where
   type RepK (WeirdTreeR a)
     = F (Kon (WeirdTreeR a)) :*: F (Kon (WeirdTreeR a))
-    :+: E ((Kon (Show a) :&: (Eq :$: V0) :&: (Typeable :$: V0)) :=>: ((F V0 :*: F (Kon a))))
+    :+: E ((Kon (Show a) :&: (Eq :$: Var0) :&: (Typeable :$: Var0)) :=>: ((F Var0 :*: F (Kon a))))
 
   fromK (WeirdBranchR l r) = L1 $         F l :*: F r
   fromK (WeirdLeafR   a x) = R1 $ E $ C $ F a :*: F x
@@ -121,12 +121,16 @@ instance GenericK (WeirdTreeR a) 'LoT0 where
 data T (a :: k) where
   MkT :: forall (a :: *). Maybe a -> T a
 
+{- GHC rewrites this to the following Core
+data T (a :: k) =
+  forall (a' :: Type). (k ~ Type, a ~~ a') => MkT (Maybe a') 
+-}
+
 instance GenericK (T :: k -> *) (a :&&: LoT0) where
   type RepK (T :: k -> *) =
-    Kon (k ~ (*)) :=>: F (Maybe :$: ForceKind (V0 :: Atom (* -> *) *) (Atom (k -> *) *))
-
-  fromK (MkT x) = C (F x)
-  toK (C (F x)) = MkT x
+    E ((Kon (k ~ (*)) :&: (Var0 :~~: Var1)) :=>: F (Maybe :$: Var0))
+  fromK (MkT x) = E (C (F x))
+  toK (E (C (F x))) = MkT x
 
 data P k (a :: k) where
   P :: forall k (a :: k). P k a
@@ -138,18 +142,31 @@ instance GenericK (P k) ((a :: k) :&&: LoT0) where
 
 {- This does not work
 instance GenericK P (k :&&: a :&&: LoT0) where
-  type RepK P = KindOf V1 :~: V0 :=>: U1
+  type RepK P = KindOf Var1 :~: Var0 :=>: U1
 -}
 
 data P' j (a :: k) where
   P' :: forall k (a :: k). P' k a
 
 instance GenericK (P' j) ((a :: k) :&&: LoT0) where
-  type RepK (P' j) = (KindOf V0 :~: Kon j) :=>: U1
+  type RepK (P' j) = (KindOf Var0 :~: Kon j) :=>: U1
   fromK P' = C U1
   toK   (C U1) = P'
 
 instance GenericK P' (j :&&: (a :: k) :&&: LoT0) where
-  type RepK P' = (KindOf V1 :~: V0) :=>: U1
+  type RepK P' = (KindOf Var1 :~: Var0) :=>: U1
   fromK P' = C U1
   toK   (C U1) = P'
+
+{- Without KindOf
+
+instance GenericK (P' j :: k -> Type) (a :&&: LoT0) where
+  type RepK (P' j :: k -> Type) = (Kon k :~: Kon j) :=>: U1
+  fromK P' = C U1
+  toK (C U1) = P'
+
+instance GenericK (P' :: Type -> k -> Type) (j :&&: a :&&: LoT0) where
+  type RepK (P' :: Type -> k -> Type) = (Kon k :~: V0) :=>: U1
+  fromK P' = C U1
+  toK (C U1) = P'
+-}

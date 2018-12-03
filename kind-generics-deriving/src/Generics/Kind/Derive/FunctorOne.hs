@@ -71,7 +71,7 @@ instance GFunctorOneArg t => GFunctorOne (F t) where
 instance GFunctorOneArg ('Kon t) where
   gfmapof _ _ x = x
 -- The type variable itself
-instance GFunctorOneArg V0 where
+instance GFunctorOneArg Var0 where
   gfmapof _ f x = f x
 -- Going through functor
 instance forall f x.

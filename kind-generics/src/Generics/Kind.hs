@@ -22,7 +22,7 @@ module Generics.Kind (
 , module Data.PolyKinded.Atom
   -- * Generic representation types
 , (:+:)(..), (:*:)(..), U1(..), M1(..)
-, F(..), (:=>:)(..), E(..), ForceKind
+, F(..), (:=>:)(..), E(..)
   -- * Generic type classes
 , GenericK(..)
 , GenericF, fromF, toF
@@ -38,8 +38,6 @@ import Data.PolyKinded.Atom
 import Data.Kind
 import GHC.Generics.Extra hiding ((:=>:))
 import qualified GHC.Generics.Extra as GG
-import Type.Reflection
-import GHC.TypeLits
 
 -- | Fields: used to represent each of the (visible) arguments to a constructor.
 -- Replaces the 'K1' type from "GHC.Generics". The type of the field is
@@ -60,10 +58,6 @@ deriving instance Show (Ty t x) => Show (F t x)
 data (:=>:) (c :: Atom d Constraint) (f :: LoT d -> *) (x :: LoT d) where
   C :: Ty c x => f x -> (c :=>: f) x
 deriving instance (Ty c x => Show (f x)) => Show ((c :=>: f) x)
-
-type family ForceKind (a :: j) k :: k where
-  ForceKind (a :: k) k = a
-  ForceKind (a :: j) k = TypeError (Text "Kinds " :<>: ShowType j :<>: Text " and " :<>: ShowType k :<>: Text " do not coincide")
 
 -- | Existentials: a representation of the form @E f@ describes
 -- a constructor whose inner type is represented by @f@, and where
