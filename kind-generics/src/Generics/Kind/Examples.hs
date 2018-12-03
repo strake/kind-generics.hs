@@ -169,3 +169,11 @@ instance GenericK Ranky LoT0 where
 
   fromK (MkRanky x) = F (ForAllTy x)
   toK (F (ForAllTy x)) = MkRanky x
+
+newtype Ranky2 b = MkRanky2 ((forall a. a -> a) -> b)
+
+instance GenericK Ranky2 (b ':&&: LoT0) where
+  type RepK Ranky2 = F ((->) :$: ForAll ((->) :$: Var0 :@: Var0) :@: Var0)
+
+  fromK (MkRanky2 f) = F (\(ForAllTy x) -> f x)
+  toK (F f) = MkRanky2 (\x -> f (ForAllTy x))
