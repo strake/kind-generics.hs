@@ -49,7 +49,8 @@ import GHC.Exts
 newtype Field (t :: Atom d (*)) (x :: LoT d) where
   -- Field :: forall (r :: RuntimeRep) (k :: TYPE r) (d :: *). Atom d k -> LoT d -> * where
   -- Until https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0013-unlifted-newtypes.rst
-  -- is implemented, we can only return (*)-types from Interpret
+  -- and https://ghc.haskell.org/trac/ghc/ticket/14917
+  -- are implemented, we are restricted to the (*) kind
   Field :: { unField :: Interpret t x } -> Field t x
 deriving instance Show (Interpret t x) => Show (Field t x)
 
