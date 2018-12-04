@@ -190,11 +190,11 @@ instance GenericK Shower (a ':&&: LoT0) where
 -- Other representation types
 
 data Unboxed1 = MkUnboxed1 (# Int, Int #)
-
+{- -- We cannot write this
 instance GenericK Unboxed1 'LoT0 where
   type RepK Unboxed1 = Field (Kon (# Int, Int #))
-  -- We cannot write this
   -- fromK (MkUnboxed1 x) = Field x
   -- toK (Field x) = MkUnboxed1 x
   fromK = undefined
   toK   = undefined
+-}
