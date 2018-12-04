@@ -21,7 +21,7 @@ module Generics.Kind (
   module Data.PolyKinded
 , module Data.PolyKinded.Atom
   -- * Generic representation types
-, (:+:)(..), (:*:)(..), V1(..), U1(..), M1(..)
+, (:+:)(..), (:*:)(..), V1, U1(..), M1(..)
 , Field(..), (:=>:)(..), Exists(..)
   -- * Generic type classes
 , GenericK(..)
@@ -38,6 +38,7 @@ import Data.PolyKinded.Atom
 import Data.Kind
 import GHC.Generics.Extra hiding ((:=>:), SuchThat)
 import qualified GHC.Generics.Extra as GG
+import GHC.Exts
 
 -- | Fields: used to represent each of the (visible) arguments to a constructor.
 -- Replaces the 'K1' type from "GHC.Generics". The type of the field is
@@ -45,7 +46,11 @@ import qualified GHC.Generics.Extra as GG
 --
 -- > instance GenericK [] (a :&&: LoT0) where
 -- >   type RepK [] = Field Var0 :*: Field ([] :$: Var0)
-newtype Field (t :: Atom d (*)) (x :: LoT d) = Field { unField :: Interpret t x }
+newtype Field (t :: Atom d (*)) (x :: LoT d) where
+  -- Field :: forall (r :: RuntimeRep) (k :: TYPE r) (d :: *). Atom d k -> LoT d -> * where
+  -- Until https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0013-unlifted-newtypes.rst
+  -- is implemented, we can only return (*)-types from Interpret
+  Field :: { unField :: Interpret t x } -> Field t x
 deriving instance Show (Interpret t x) => Show (Field t x)
 
 -- | Constraints: used to represent constraints in a constructor.

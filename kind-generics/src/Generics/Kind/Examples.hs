@@ -10,6 +10,7 @@
 {-# language QuantifiedConstraints #-}
 {-# language UndecidableInstances  #-}
 {-# language RankNTypes            #-}
+{-# language UnboxedTuples         #-}
 module Generics.Kind.Examples where
 
 import Data.PolyKinded.Functor
@@ -185,3 +186,15 @@ instance GenericK Shower (a ':&&: LoT0) where
   type RepK Shower = Field ((Show :$: Var0) :=>>: ((->) :$: Var0 :@: Kon String))
   fromK (MkShower f) = Field (SuchThatI f)
   toK (Field (SuchThatI f)) = MkShower f
+
+-- Other representation types
+
+data Unboxed1 = MkUnboxed1 (# Int, Int #)
+
+instance GenericK Unboxed1 'LoT0 where
+  type RepK Unboxed1 = Field (Kon (# Int, Int #))
+  -- We cannot write this
+  -- fromK (MkUnboxed1 x) = Field x
+  -- toK (Field x) = MkUnboxed1 x
+  fromK = undefined
+  toK   = undefined
