@@ -9,7 +9,6 @@
 module Generics.SOP.Kind.Derive.Eq where
 
 import Generics.SOP.Kind
-import Type.Reflection
 
 geq' :: forall f x.
         (GenericK f x, AllFields Eq (CodeK f) x)
@@ -28,18 +27,11 @@ geq = goS
 
     goB :: forall b rys. AllFieldsB Eq b rys
         => NB rys b -> NB rys b -> Bool
-    goB (C_ x) (C_ y) = goB x y
-    goB (F_ x) (F_ y) = goP x y
-    goB (E_ _) (E_ _) = error "existentials are not supported"
-    goB (ERefl_ _) (ERefl_ _) = error "existentials are not supported"
-    {-
-    goB (ERefl_ x) (ERefl_ y)
-                      = case eqTypeRep (typeOf x) (typeOf y) of
-                          Nothing    -> False
-                          Just HRefl -> goB x y
-    -}
+    goB (SuchThat_ x) (SuchThat_ y) = goB x y
+    goB (Fields_ x)   (Fields_ y) = goP x y
+    goB (Exists_ _)   (Exists_ _) = error "existentials are not supported"
 
     goP :: forall d rys. AllFieldsP Eq d rys
         => NP (NA rys) d -> NP (NA rys) d -> Bool
-    goP Nil          Nil          = True
-    goP (A_ x :* xs) (A_ y :* ys) = x == y && goP xs ys
+    goP Nil             Nil          = True
+    goP (Atom_ x :* xs) (Atom_ y :* ys) = x == y && goP xs ys

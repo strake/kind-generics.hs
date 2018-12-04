@@ -22,7 +22,7 @@ module Generics.Kind (
 , module Data.PolyKinded.Atom
   -- * Generic representation types
 , (:+:)(..), (:*:)(..), V1(..), U1(..), M1(..)
-, F(..), (:=>:)(..), E(..)
+, Field(..), (:=>:)(..), Exists(..)
   -- * Generic type classes
 , GenericK(..)
 , GenericF, fromF, toF
@@ -36,7 +36,7 @@ module Generics.Kind (
 import Data.PolyKinded
 import Data.PolyKinded.Atom
 import Data.Kind
-import GHC.Generics.Extra hiding ((:=>:))
+import GHC.Generics.Extra hiding ((:=>:), SuchThat)
 import qualified GHC.Generics.Extra as GG
 
 -- | Fields: used to represent each of the (visible) arguments to a constructor.
@@ -44,9 +44,9 @@ import qualified GHC.Generics.Extra as GG
 -- represented by an 'Atom' from "Data.PolyKinded.Atom".
 --
 -- > instance GenericK [] (a :&&: LoT0) where
--- >   type RepK [] = F V0 :*: F ([] :$: V0)
-newtype F (t :: Atom d (*)) (x :: LoT d) = F { unF :: Ty t x }
-deriving instance Show (Ty t x) => Show (F t x)
+-- >   type RepK [] = Field Var0 :*: Field ([] :$: Var0)
+newtype Field (t :: Atom d (*)) (x :: LoT d) = Field { unField :: Interpret t x }
+deriving instance Show (Interpret t x) => Show (Field t x)
 
 -- | Constraints: used to represent constraints in a constructor.
 -- Replaces the '(:=>:)' type from "GHC.Generics.Extra".
@@ -54,24 +54,24 @@ deriving instance Show (Ty t x) => Show (F t x)
 -- > data Showable a = Show a => a -> X a
 -- >
 -- > instance GenericK Showable (a :&&: LoT0) where
--- >   type RepK Showable = (Show :$: a) :=>: (F V0)
+-- >   type RepK Showable = (Show :$: a) :=>: (Field V0)
 data (:=>:) (c :: Atom d Constraint) (f :: LoT d -> *) (x :: LoT d) where
-  C :: Ty c x => f x -> (c :=>: f) x
-deriving instance (Ty c x => Show (f x)) => Show ((c :=>: f) x)
+  SuchThat :: Interpret c x => f x -> (c :=>: f) x
+deriving instance (Interpret c x => Show (f x)) => Show ((c :=>: f) x)
 
 -- | Existentials: a representation of the form @E f@ describes
 -- a constructor whose inner type is represented by @f@, and where
 -- the type variable at index 0, @V0@, is existentially quantified.
 --
--- > data Exists where
+-- > data E where
 -- >  E :: t -> Exists
 -- >
--- > instance GenericK Exists LoT0 where
--- >   type RepK Exists = E (F V0)
-data E (f :: LoT (k -> d) -> *) (x :: LoT d) where
-  E :: forall (t :: k) d (f :: LoT (k -> d) -> *) (x :: LoT d)
-     . f (t ':&&: x) -> E f x
-deriving instance (forall t. Show (f (t ':&&: x))) => Show (E f x)
+-- > instance GenericK E LoT0 where
+-- >   type RepK E = Exists (*) (Field Var0)
+data Exists k (f :: LoT (k -> d) -> *) (x :: LoT d) where
+  Exists :: forall (t :: k) d (f :: LoT (k -> d) -> *) (x :: LoT d)
+          .{ unExists :: f (t ':&&: x) } -> Exists k f x
+deriving instance (forall t. Show (f (t ':&&: x))) => Show (Exists k f x)
 
 -- THE TYPE CLASS
 
@@ -148,17 +148,17 @@ instance SubstRep' f x xs => SubstRep' (M1 i c f) x xs where
   substRep   (M1 x) = M1 (substRep   x)
   unsubstRep (M1 x) = M1 (unsubstRep x)
 
-instance (Ty (SubstAtom c x) xs, Ty c (x ':&&: xs), SubstRep' f x xs)
+instance (Interpret (SubstAtom c x) xs, Interpret c (x ':&&: xs), SubstRep' f x xs)
          => SubstRep' (c :=>: f) x xs where
   type SubstRep (c :=>: f) x = (SubstAtom c x) :=>: (SubstRep f x)
-  substRep   (C x) = C (substRep   x)
-  unsubstRep (C x) = C (unsubstRep x)
+  substRep   (SuchThat x) = SuchThat (substRep   x)
+  unsubstRep (SuchThat x) = SuchThat (unsubstRep x)
 
-instance (Ty (SubstAtom t x) xs ~ Ty t (x ':&&: xs))
-         => SubstRep' (F t) x xs where
-  type SubstRep (F t) x = F (SubstAtom t x)
-  substRep   (F x) = F x
-  unsubstRep (F x) = F x
+instance (Interpret (SubstAtom t x) xs ~ Interpret t (x ':&&: xs))
+         => SubstRep' (Field t) x xs where
+  type SubstRep (Field t) x = Field (SubstAtom t x)
+  substRep   (Field x) = Field x
+  unsubstRep (Field x) = Field x
 
 type family SubstAtom (f :: Atom (t -> k) d) (x :: t) :: Atom k d where
   SubstAtom ('Var 'VZ)     x = 'Kon x
@@ -199,11 +199,11 @@ instance {-# OVERLAPS #-} (Conv f f' tys) => Conv (M1 i c f) (M1 i c f') tys whe
   toGhcGenerics  (M1 x) = M1 (toGhcGenerics  x)
   toKindGenerics (M1 x) = M1 (toKindGenerics x)
 
-instance (k ~ Ty t tys, Conv f f' tys)
+instance (k ~ Interpret t tys, Conv f f' tys)
          => Conv (k GG.:=>: f) (t :=>: f') tys where
-  toGhcGenerics (C x) = GG.SuchThat (toGhcGenerics x)
-  toKindGenerics (GG.SuchThat x) = C (toKindGenerics x)
+  toGhcGenerics (SuchThat x) = GG.SuchThat (toGhcGenerics x)
+  toKindGenerics (GG.SuchThat x) = SuchThat (toKindGenerics x)
 
-instance (k ~ Ty t tys) => Conv (K1 p k) (F t) tys where
-  toGhcGenerics  (F x)  = K1 x
-  toKindGenerics (K1 x) = F x
+instance (k ~ Interpret t tys) => Conv (K1 p k) (Field t) tys where
+  toGhcGenerics  (Field x)  = K1 x
+  toKindGenerics (K1 x) = Field x

@@ -11,9 +11,9 @@ module Data.PolyKinded.Atom where
 import Data.Kind
 import Data.PolyKinded
 import Data.Type.Equality
-import Data.Proxy
+import GHC.Exts
 
-data TyVar d k where
+data TyVar (d :: *) (k :: TYPE r) where
   VZ :: TyVar (x -> xs) x
   VS :: TyVar xs k -> TyVar (x -> xs) k
 
@@ -29,7 +29,8 @@ type Var8 = 'Var ('VS ('VS ('VS ('VS ('VS ('VS ('VS ('VS 'VZ))))))))
 type Var9 = 'Var ('VS ('VS ('VS ('VS ('VS ('VS ('VS ('VS ('VS 'VZ)))))))))
 
 infixr 5 :&:
-data Atom d k where
+infixr 5 :=>>:
+data Atom (d :: *) (k :: TYPE r) where
   Var :: TyVar d k -> Atom d k
   Kon :: k         -> Atom d k
   (:@:) :: Atom d (k1 -> k2) -> Atom d k1 -> Atom d k2
@@ -41,21 +42,21 @@ type f :$:  x = 'Kon f ':@: x
 type a :~:  b = 'Kon (~) ':@: a ':@: b
 type a :~~: b = 'Kon (~~) ':@: a ':@: b
 
-type family Ty (t :: Atom d k) (tys :: LoT d) :: k where
-  Ty ('Var 'VZ)     (t ':&&: ts) = t
-  Ty ('Var ('VS v)) (t ':&&: ts) = Ty ('Var v) ts
-  Ty ('Kon t)       tys          = t
-  Ty (f ':@: x)     tys          = (Ty f tys) (Ty x tys)
-  Ty (c ':&: d)     tys          = (Ty c tys, Ty d tys)
-  Ty (ForAll f)     tys          = ForAllTy f tys
-  Ty (c ':=>>: f)   tys          = SuchThatTy c f tys
+type family Interpret (t :: Atom d k) (tys :: LoT d) :: k where
+  Interpret ('Var 'VZ)     (t ':&&: ts) = t
+  Interpret ('Var ('VS v)) (t ':&&: ts) = Interpret ('Var v) ts
+  Interpret ('Kon t)       tys = t
+  Interpret (f ':@: x)     tys = (Interpret f tys) (Interpret x tys)
+  Interpret (c ':&: d)     tys = (Interpret c tys, Interpret d tys)
+  Interpret (ForAll f)     tys = ForAllI f tys
+  Interpret (c ':=>>: f)   tys = SuchThatI c f tys
 
-newtype ForAllTy (f :: Atom (d1 -> d) (*)) (tys :: LoT d) where
-  ForAllTy :: (forall t. Ty f (t ':&&: tys)) -> ForAllTy f tys
+newtype ForAllI (f :: Atom (d1 -> d) (*)) (tys :: LoT d) where
+  ForAllI :: (forall t. Interpret f (t ':&&: tys)) -> ForAllI f tys
 
-data SuchThatTy (c :: Atom d Constraint) (f :: Atom d (*)) (tys :: LoT d) where
-  SuchThatTy :: (Ty c tys => Ty f tys) -> SuchThatTy c f tys
+newtype SuchThatI (c :: Atom d Constraint) (f :: Atom d (*)) (tys :: LoT d) where
+  SuchThatI :: (Interpret c tys => Interpret f tys) -> SuchThatI c f tys
 
 type family Satisfies (cs :: [Atom d Constraint]) (tys :: LoT d) :: Constraint where
   Satisfies '[]       tys = ()
-  Satisfies (c ': cs) tys = (Ty c tys, Satisfies cs tys)
+  Satisfies (c ': cs) tys = (Interpret c tys, Satisfies cs tys)

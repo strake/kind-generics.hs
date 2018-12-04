@@ -38,16 +38,16 @@ instance (GEq2 f xs ys, GEq2 g xs ys) => GEq2 (f :+: g) xs ys where
 instance (GEq2 f xs ys, GEq2 g xs ys) => GEq2 (f :*: g) xs ys where
   geq2 (x1 :*: x2) (y1 :*: y2) = geq2 x1 y1 && geq2 x2 y2
 
-instance (xs ~ ys, Eq (Ty t xs)) => GEq2 (F t) xs ys where
-  geq2 (F x) (F y) = x == y
+instance (xs ~ ys, Eq (Interpret t xs)) => GEq2 (Field t) xs ys where
+  geq2 (Field x) (Field y) = x == y
 
-instance ((Ty c xs, Ty c ys) => GEq2 f xs ys)
+instance ((Interpret c xs, Interpret c ys) => GEq2 f xs ys)
          => GEq2 (c :=>: f) xs ys where
-  geq2 (C x) (C y) = geq2 x y
+  geq2 (SuchThat x) (SuchThat y) = geq2 x y
 
 instance (forall x y. GEq2 f (x ':&&: xs) (y ':&&: ys))
-         => GEq2 (E f) xs ys where
-  geq2 (E x) (E y) = geq2 x y
+         => GEq2 (Exists k f) xs ys where
+  geq2 (Exists x) (Exists y) = geq2 x y
 
 {-
 instance (forall x y. GEq2 f (x ':&&: xs) (y ':&&: ys))

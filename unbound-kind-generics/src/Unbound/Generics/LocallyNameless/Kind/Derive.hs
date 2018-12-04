@@ -109,37 +109,37 @@ class GAlphaK (f :: LoT k -> *) (a :: LoT k) where
 
   gacompareK :: AlphaCtx -> f a -> f a -> Ordering
 
-instance Alpha (Ty t a) => GAlphaK (F t) a where
-  gaeqK ctx (F c1) (F c2) = aeq' ctx c1 c2
+instance Alpha (Interpret t a) => GAlphaK (Field t) a where
+  gaeqK ctx (Field c1) (Field c2) = aeq' ctx c1 c2
   {-# INLINE gaeqK #-}
 
-  gfvAnyK ctx nfn = fmap F . fvAny' ctx nfn . unF
+  gfvAnyK ctx nfn = fmap Field . fvAny' ctx nfn . unField
   {-# INLINE gfvAnyK #-}
 
-  gcloseK ctx b = F . close ctx b . unF
+  gcloseK ctx b = Field . close ctx b . unField
   {-# INLINE gcloseK #-}
-  gopenK ctx b = F . open ctx b . unF
+  gopenK ctx b = Field . open ctx b . unField
   {-# INLINE gopenK #-}
 
-  gisPatK = isPat . unF
+  gisPatK = isPat . unField
   {-# INLINE gisPatK #-}
-  gisTermK = isTerm . unF
+  gisTermK = isTerm . unField
   {-# INLINE gisTermK #-}
 
-  gnthPatFindK = nthPatFind . unF
+  gnthPatFindK = nthPatFind . unField
   {-# INLINE gnthPatFindK #-}
-  gnamePatFindK = namePatFind . unF
+  gnamePatFindK = namePatFind . unField
   {-# INLINE gnamePatFindK #-}
 
-  gswapsK ctx perm = F . swaps' ctx perm . unF
+  gswapsK ctx perm = Field . swaps' ctx perm . unField
   {-# INLINE gswapsK #-}
-  gfreshenK ctx = liftM (first F) . liftFFM . freshen' ctx . unF
+  gfreshenK ctx = liftM (first Field) . liftFFM . freshen' ctx . unField
   {-# INLINE gfreshenK #-}
 
-  glfreshenK ctx (F c) cont = lfreshen' ctx c (cont . F)
+  glfreshenK ctx (Field c) cont = lfreshen' ctx c (cont . Field)
   {-# INLINE glfreshenK #-}
 
-  gacompareK ctx (F c1) (F c2) = acompare' ctx c1 c2
+  gacompareK ctx (Field c1) (Field c2) = acompare' ctx c1 c2
 
 instance GAlphaK f a => GAlphaK (M1 i d f) a where
   gaeqK ctx (M1 f1) (M1 f2) = gaeqK ctx f1 f2
@@ -293,84 +293,82 @@ instance (GAlphaK f a, GAlphaK g a) => GAlphaK (f :+: g) a where
   gacompareK ctx  (R1 g1) (R1 g2) = gacompareK ctx g1 g2
   {-# INLINE gacompareK #-}
 
-instance (Ty c a => GAlphaK f a) => GAlphaK (c :=>: f) a where
-  gaeqK ctx (C f1) (C f2) = gaeqK ctx f1 f2
+instance (Interpret c a => GAlphaK f a) => GAlphaK (c :=>: f) a where
+  gaeqK ctx (SuchThat f1) (SuchThat f2) = gaeqK ctx f1 f2
   {-# INLINE gaeqK #-}
 
-  gfvAnyK ctx nfn (C f) = fmap C (gfvAnyK ctx nfn f)
+  gfvAnyK ctx nfn (SuchThat f) = fmap SuchThat (gfvAnyK ctx nfn f)
   {-# INLINE gfvAnyK #-}
 
-  gcloseK ctx b (C f) = C (gcloseK ctx b f)
+  gcloseK ctx b (SuchThat f) = SuchThat (gcloseK ctx b f)
   {-# INLINE gcloseK #-}
-  gopenK ctx b (C f) = C (gopenK ctx b f)
+  gopenK ctx b (SuchThat f) = SuchThat (gopenK ctx b f)
   {-# INLINE gopenK #-}
 
-  gisPatK (C f) = gisPatK f
+  gisPatK (SuchThat f) = gisPatK f
   {-# INLINE gisPatK #-}
 
-  gisTermK (C f) = gisTermK f
+  gisTermK (SuchThat f) = gisTermK f
   {-# INLINE gisTermK #-}
 
-  gnthPatFindK (C f) = gnthPatFindK f
+  gnthPatFindK (SuchThat f) = gnthPatFindK f
   {-# INLINE gnthPatFindK #-}
 
-  gnamePatFindK (C f) = gnamePatFindK f
+  gnamePatFindK (SuchThat f) = gnamePatFindK f
   {-# INLINE gnamePatFindK #-}
 
-  gswapsK ctx perm (C f) = C (gswapsK ctx perm f)
+  gswapsK ctx perm (SuchThat f) = SuchThat (gswapsK ctx perm f)
   {-# INLINE gswapsK #-}
 
-  gfreshenK ctx (C f) = liftM (first C) (gfreshenK ctx f)
+  gfreshenK ctx (SuchThat f) = liftM (first SuchThat) (gfreshenK ctx f)
   {-# INLINE gfreshenK #-}
 
-  glfreshenK ctx (C f) cont =
-    glfreshenK ctx f (cont . C)
+  glfreshenK ctx (SuchThat f) cont = glfreshenK ctx f (cont . SuchThat)
   {-# INLINE glfreshenK #-}
 
-  gacompareK ctx (C f1) (C f2) = gacompareK ctx f1 f2
+  gacompareK ctx (SuchThat f1) (SuchThat f2) = gacompareK ctx f1 f2
   {-# INLINE gacompareK #-}
 
-instance forall (f :: LoT (k -> r) -> *) (a :: LoT r).
+instance forall k (f :: LoT (k -> r) -> *) (a :: LoT r).
          (Typeable k, Typeable r, Typeable f, Typeable a,  -- Just to please GHC
           (forall (t :: k). (Typeable t => GAlphaK f (t :&&: a))))
-         => GAlphaK (E ((Typeable :$: Var0) :=>: f)) a where
-  gaeqK ctx (E (C (f1 :: f (t1 :&&: a)))) (E (C (f2 :: f (t2 :&&: a)))) =
+         => GAlphaK (Exists k ((Typeable :$: Var0) :=>: f)) a where
+  gaeqK ctx (Exists (SuchThat (f1 :: f (t1 :&&: a)))) (Exists (SuchThat (f2 :: f (t2 :&&: a)))) =
     case eqTypeRep (typeRep @t1) (typeRep @t2) of
       Nothing    -> False
       Just HRefl -> gaeqK ctx f1 f2
   {-# INLINE gaeqK #-}
 
-  gfvAnyK ctx nfn (E f) = fmap E (gfvAnyK ctx nfn f)
+  gfvAnyK ctx nfn (Exists f) = fmap Exists (gfvAnyK ctx nfn f)
   {-# INLINE gfvAnyK #-}
 
-  gcloseK ctx b (E f) = E (gcloseK ctx b f)
+  gcloseK ctx b (Exists f) = Exists (gcloseK ctx b f)
   {-# INLINE gcloseK #-}
-  gopenK ctx b (E f) = E (gopenK ctx b f)
+  gopenK ctx b (Exists f) = Exists (gopenK ctx b f)
   {-# INLINE gopenK #-}
 
-  gisPatK (E f) = gisPatK f
+  gisPatK (Exists f) = gisPatK f
   {-# INLINE gisPatK #-}
 
-  gisTermK (E f) = gisTermK f
+  gisTermK (Exists f) = gisTermK f
   {-# INLINE gisTermK #-}
 
-  gnthPatFindK (E f) = gnthPatFindK f
+  gnthPatFindK (Exists f) = gnthPatFindK f
   {-# INLINE gnthPatFindK #-}
 
-  gnamePatFindK (E f) = gnamePatFindK f
+  gnamePatFindK (Exists f) = gnamePatFindK f
   {-# INLINE gnamePatFindK #-}
 
-  gswapsK ctx perm (E f) = E (gswapsK ctx perm f)
+  gswapsK ctx perm (Exists f) = Exists (gswapsK ctx perm f)
   {-# INLINE gswapsK #-}
 
-  gfreshenK ctx (E f) = liftM (first E) (gfreshenK ctx f)
+  gfreshenK ctx (Exists f) = liftM (first Exists) (gfreshenK ctx f)
   {-# INLINE gfreshenK #-}
 
-  glfreshenK ctx (E f) cont =
-    glfreshenK ctx f (cont . E)
+  glfreshenK ctx (Exists f) cont = glfreshenK ctx f (cont . Exists)
   {-# INLINE glfreshenK #-}
 
-  gacompareK ctx (E (C (f1 :: f (t1 :&&: a)))) (E (C (f2 :: f (t2 :&&: a)))) = 
+  gacompareK ctx (Exists (SuchThat (f1 :: f (t1 :&&: a)))) (Exists (SuchThat (f2 :: f (t2 :&&: a)))) = 
     case eqTypeRep (typeRep @t1) (typeRep @t2) of
       Nothing    -> compare (SomeTypeRep (typeRep @t1)) (SomeTypeRep (typeRep @t2))
       Just HRefl -> gacompareK ctx f1 f2
@@ -409,9 +407,9 @@ class GSubstK b (f :: LoT k -> *) (a :: LoT k) where
   gsubstK :: Name b -> b -> f a -> f a
   gsubstsK :: [(Name b, b)] -> f a -> f a
 
-instance Subst b (Ty t a) => GSubstK b (F t) a where
-  gsubstK nm val = F . subst nm val . unF
-  gsubstsK ss = F . substs ss . unF
+instance Subst b (Interpret t a) => GSubstK b (Field t) a where
+  gsubstK nm val = Field . subst nm val . unField
+  gsubstsK ss = Field . substs ss . unField
 
 instance GSubstK b f a => GSubstK b (M1 i c f) a where
   gsubstK nm val = M1 . gsubstK nm val . unM1
@@ -432,10 +430,10 @@ instance (GSubstK b f a, GSubstK b g a) => GSubstK b (f :+: g) a where
   gsubstsK ss (L1 f) = L1 $ gsubstsK ss f
   gsubstsK ss (R1 g) = R1 $ gsubstsK ss g
 
-instance ((Ty c a) => GSubstK b f a) => GSubstK b (c :=>: f) a where
-  gsubstK nm val (C f) = C $ gsubstK nm val f
-  gsubstsK ss (C f) = C $ gsubstsK ss f
+instance ((Interpret c a) => GSubstK b f a) => GSubstK b (c :=>: f) a where
+  gsubstK nm val (SuchThat f) = SuchThat $ gsubstK nm val f
+  gsubstsK ss (SuchThat f) = SuchThat $ gsubstsK ss f
 
-instance (forall t. GSubstK b f (t :&&: a)) => GSubstK b (E f) a where
-  gsubstK nm val (E f) = E $ gsubstK nm val f
-  gsubstsK ss (E f) = E $ gsubstsK ss f
+instance (forall (t :: k). GSubstK b f (t :&&: a)) => GSubstK b (Exists k f) a where
+  gsubstK nm val (Exists f) = Exists $ gsubstK nm val f
+  gsubstsK ss (Exists f) = Exists $ gsubstsK ss f

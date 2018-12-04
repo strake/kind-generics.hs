@@ -45,15 +45,15 @@ instance (GEq f, GEq g) => GEq (f :*: g) where
   type ReqsEq (f :*: g) tys = (ReqsEq f tys, ReqsEq g tys)
   geq (x1 :*: x2) (y1 :*: y2) = geq x1 y1 && geq x2 y2
 
-instance GEq (F t) where
-  type ReqsEq (F t) tys = Eq (Ty t tys)
-  geq (F x) (F y) = x == y
+instance GEq (Field t) where
+  type ReqsEq (Field t) tys = Eq (Interpret t tys)
+  geq (Field x) (Field y) = x == y
 
 instance GEq f => GEq (c :=>: f) where
   type ReqsEq (c :=>: f) tys = ReqsEq f tys
-  -- really we want          = Ty c tys => GEq f tys
-  geq (C x) (C y) = geq x y
+  -- really we want          = Interpret c tys => GEq f tys
+  geq (SuchThat x) (SuchThat y) = geq x y
 
 instance TypeError (Text "Existentials are not supported")
-         => GEq (E f) where
+         => GEq (Exists k f) where
   geq = undefined

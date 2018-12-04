@@ -31,23 +31,22 @@ gfmap v = goS
 
     goB :: forall (b :: Branch k). AllAtomsB (GFunctorArg v 'Co as bs) b
         => NB as b -> NB bs b
-    -- goB v (C_ x) = C_ (goB v x)
-    goB (C_ _) = error "constraints are not supported"
-    -- goB v (E_ x) = E_ (goB ((id :^: v) :: Mappings ('Co ': v) (t ':&&: cs) (t ':&&: ds)) x)
-    goB (E_ _) = error "existentials are not supported"
-    goB (ERefl_ _) = error "existentials are not supported"
-    goB (F_ x) = F_ (goP x)
+    -- goB v (SuchThat_ x) = SuchThat_ (goB v x)
+    goB (SuchThat_ _) = error "constraints are not supported"
+    -- goB v (Exists_ x) = Exists_ (goB ((id :^: v) :: Mappings ('Co ': v) (t ':&&: cs) (t ':&&: ds)) x)
+    goB (Exists_ _) = error "existentials are not supported"
+    goB (Fields_ x) = Fields_ (goP x)
 
     goP :: forall (d :: Fields k). AllAtomsP (GFunctorArg v 'Co as bs) d
         => NP (NA as) d -> NP (NA bs) d
     goP Nil = Nil
-    goP ((A_ x :: NA as fl) :* xs) = A_ (gfmapf (Proxy @fl) (Proxy @'Co) v x) :* goP xs
+    goP ((Atom_ x :: NA as fl) :* xs) = Atom_ (gfmapf (Proxy @fl) (Proxy @'Co) v x) :* goP xs
 
 class GFunctorArg (v :: Variances) (intended :: Variance)
                   (as :: LoT d) (bs :: LoT d) (t :: Atom d (*)) where
   gfmapf :: Proxy t -> Proxy intended
          -> Mappings v as bs
-         -> Mapping intended (Ty t as) (Ty t bs)
+         -> Mapping intended (Interpret t as) (Interpret t bs)
 
 -- COPIED STRAIGHT FROM KIND-GENERICS (WITHOUT SOP)
 
@@ -65,21 +64,22 @@ instance forall vr pre v intended a as b bs.
   gfmapf _ _ (_ :^: rest) = gfmapf (Proxy @('Var vr)) (Proxy @intended) rest
 
 instance forall f x v v1 as bs.
-         (KFunctor f '[v1] (Ty x as ':&&: 'LoT0) (Ty x bs ':&&: 'LoT0),
+         (KFunctor f '[v1] (Interpret x as ':&&: 'LoT0) (Interpret x bs ':&&: 'LoT0),
           GFunctorArg v v1 as bs x)
          => GFunctorArg v 'Co as bs (f :$: x) where
   gfmapf _ _ v = kfmap (gfmapf (Proxy @x) (Proxy @v1) v :^: M0)
 
 instance forall f x y v v1 v2 as bs.
-         (KFunctor f '[v1, v2] (Ty x as ':&&: Ty y as ':&&: 'LoT0) (Ty x bs ':&&: Ty y bs ':&&: 'LoT0),
+         (KFunctor f '[v1, v2] (Interpret x as ':&&: Interpret y as ':&&: 'LoT0)
+                               (Interpret x bs ':&&: Interpret y bs ':&&: 'LoT0),
           GFunctorArg v v1 as bs x, GFunctorArg v v2 as bs y)
          => GFunctorArg v 'Co as bs (f :$: x ':@: y) where
   gfmapf _ _ v = kfmap (gfmapf (Proxy @x) (Proxy @v1) v :^:
                         gfmapf (Proxy @y) (Proxy @v2) v :^: M0)
 
 instance forall f x y z v v1 v2 v3 as bs.
-         (KFunctor f '[v1, v2, v3] (Ty x as ':&&: Ty y as ':&&: Ty z as ':&&: 'LoT0)
-                                   (Ty x bs ':&&: Ty y bs ':&&: Ty z bs ':&&: 'LoT0),
+         (KFunctor f '[v1, v2, v3] (Interpret x as ':&&: Interpret y as ':&&: Interpret z as ':&&: 'LoT0)
+                                   (Interpret x bs ':&&: Interpret y bs ':&&: Interpret z bs ':&&: 'LoT0),
           GFunctorArg v v1 as bs x, GFunctorArg v v2 as bs y, GFunctorArg v v3 as bs z)
          => GFunctorArg v 'Co as bs (f :$: x ':@: y ':@: z) where
   gfmapf _ _ v = kfmap (gfmapf (Proxy @x) (Proxy @v1) v :^:

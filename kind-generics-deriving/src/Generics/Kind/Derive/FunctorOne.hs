@@ -18,7 +18,7 @@ import Data.Proxy
 import Data.Kind
 import Generics.Kind
 
-type LoT1 a = a ':&&: LoT0
+type LoT1 a = a ':&&: 'LoT0
 
 fmapDefaultOne :: (GenericK f (LoT1 a),
                    GenericK f (LoT1 b),
@@ -56,16 +56,17 @@ instance (GFunctorOne f, GFunctorOne g)
   gfmapo v (x :*: y) = gfmapo v x :*: gfmapo v y
 
 instance GFunctorOne f => GFunctorOne (c :=>: f) where
-  type Reqs (c :=>: f) a b = (Ty c (LoT1 b), Reqs f a b)
-  -- actually you want     = Ty c (LoT1 a) => (Ty c (LoT1 b), Reqs f a b)
-  gfmapo v (C x) = C (gfmapo v x)
+  type Reqs (c :=>: f) a b = (Interpret c (LoT1 b), Reqs f a b)
+  -- actually you want     = Interpret c (LoT1 a) => (Interpret c (LoT1 b), Reqs f a b)
+  gfmapo v (SuchThat x) = SuchThat (gfmapo v x)
 
 class GFunctorOneArg (t :: Atom (* -> *) (*)) where
-  gfmapof :: Proxy t -> (a -> b) -> Ty t (LoT1 a) -> Ty t (LoT1 b)
+  gfmapof :: Proxy t -> (a -> b)
+          -> Interpret t (LoT1 a) -> Interpret t (LoT1 b)
 
-instance GFunctorOneArg t => GFunctorOne (F t) where
-  type Reqs (F t) a b = (() :: Constraint)
-  gfmapo v (F x) = F (gfmapof (Proxy @t) v x)
+instance GFunctorOneArg t => GFunctorOne (Field t) where
+  type Reqs (Field t) a b = (() :: Constraint)
+  gfmapo v (Field x) = Field (gfmapof (Proxy @t) v x)
 
 -- A constant
 instance GFunctorOneArg ('Kon t) where

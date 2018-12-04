@@ -48,23 +48,24 @@ instance (GTraversable f v a as b bs, GTraversable g v a as b bs)
          => GTraversable (f :*: g) v a as b bs where
   gtraverse p v (x :*: y) = (:*:) <$> gtraverse p v x <*> gtraverse p v y
 
-instance (Ty c as => GTraversable f v a as b bs, {- Ty c as => -} Ty c bs)
+instance (Interpret c as => GTraversable f v a as b bs, {- Ty c as => -} Interpret c bs)
          => GTraversable (c :=>: f) v a as b bs where
-  gtraverse p v (C x) = C <$> gtraverse p v x
+  gtraverse p v (SuchThat x) = SuchThat <$> gtraverse p v x
 
-instance forall f v a as b bs.
-         (forall (t :: *). GTraversable f (VS v) a (t ':&&: as) b (t ':&&: bs))
-         => GTraversable (E f) v a as b bs where
-  gtraverse p v (E (x :: f (t ':&&: x))) = E <$> gtraverse' @(t ':&&: x) @(t :&&: _) (Proxy @(VS v)) v x
+instance forall k f v a as b bs.
+         (forall (t :: k). GTraversable f (VS v) a (t ':&&: as) b (t ':&&: bs))
+         => GTraversable (Exists k f) v a as b bs where
+  gtraverse p v (Exists (x :: f (t ':&&: x)))
+    = Exists <$> gtraverse' @(t ':&&: x) @(t :&&: _) (Proxy @(VS v)) v x
 
 class GTraversableArg (t :: Atom d (*)) (v :: TyVar d *)
                    (a :: *) (as :: LoT d) (b :: *) (bs :: LoT d) where
   gtraversef :: Applicative g => Proxy t -> Proxy v -> Proxy as -> Proxy bs
-             -> (a -> g b) -> Ty t as -> g (Ty t bs)
+             -> (a -> g b) -> Interpret t as -> g (Interpret t bs)
 
 instance forall t v a as b bs. GTraversableArg t v a as b bs
-         => GTraversable (F t) v a as b bs where
-  gtraverse p v (F x) = F <$> gtraversef (Proxy @t) p (Proxy @as) (Proxy @bs) v x
+         => GTraversable (Field t) v a as b bs where
+  gtraverse p v (Field x) = Field <$> gtraversef (Proxy @t) p (Proxy @as) (Proxy @bs) v x
 
 instance GTraversableArg ('Kon t) v a as b bs where
   gtraversef _ _ _ _ _ = pure
@@ -88,13 +89,14 @@ instance forall f x v a as b bs.
   gtraversef _ _ _ _ f x = traverse (gtraversef (Proxy @x) (Proxy @v) (Proxy @as) (Proxy @bs) f) x
 
 instance forall f y x v a as b bs.
-         (Traversable (f (Ty y as)), Ty y as ~ Ty y bs, GTraversableArg x v a as b bs)
+         ( Traversable (f (Interpret y as)), Interpret y as ~ Interpret y bs
+         , GTraversableArg x v a as b bs )
          => GTraversableArg (f :$: y :@: x) v a as b bs where
   gtraversef _ _ _ _ f x = traverse (gtraversef (Proxy @x) (Proxy @v) (Proxy @as) (Proxy @bs) f) x
 
 instance forall f y1 y2 x v a as b bs.
-         (Traversable (f (Ty y1 as) (Ty y2 as)),
-          Ty y1 as ~ Ty y1 bs, Ty y2 as ~ Ty y2 bs,
+         (Traversable (f (Interpret y1 as) (Interpret y2 as)),
+         Interpret y1 as ~ Interpret y1 bs, Interpret y2 as ~ Interpret y2 bs,
           GTraversableArg x v a as b bs)
          => GTraversableArg (f :$: y1 :@: y2 :@: x) v a as b bs where
   gtraversef _ _ _ _ f x = traverse (gtraversef (Proxy @x) (Proxy @v) (Proxy @as) (Proxy @bs) f) x

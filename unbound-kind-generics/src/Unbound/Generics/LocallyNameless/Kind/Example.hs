@@ -53,26 +53,26 @@ deriving instance Show (Expr t)
 
 instance GenericK (Expr t) LoT0 where
   type RepK (Expr t) =
-    ((F (Kon (Name (Expr t)))))
+    ((Field (Kon (Name (Expr t)))))
     :+:
-    (E {- Var1 = a -} ((Typeable :$: Var0) :=>:
-      (E {- Var0 = b -} ((Typeable :$: Var0) :=>:
+    (Exists (*) {- Var1 = a -} ((Typeable :$: Var0) :=>:
+      (Exists (*) {- Var0 = b -} ((Typeable :$: Var0) :=>:
         (((Kon t) :~: ((->) :$: Var1 :@: Var0))
          :=>:
-         (F (Bind :$: (Name :$: (Expr :$: Var1)) :@: (Expr :$: Var0)))) ))))
+         (Field (Bind :$: (Name :$: (Expr :$: Var1)) :@: (Expr :$: Var0)))) ))))
     :+:
-    (E {- Var0 = a -} (
+    (Exists (*) {- Var0 = a -} (
       (Typeable :$: Var0)
       :=>:
-      ((F (Expr :$: ((->) :$: Var0 :@: (Kon t)))) :*: F (Expr :$: Var0)) ))
+      ((Field (Expr :$: ((->) :$: Var0 :@: (Kon t)))) :*: Field (Expr :$: Var0)) ))
 
-  fromK (V   v)   = L1 (F v)
-  fromK (Lam b)   = R1 (L1 (E (C (E (C (C (F b)))))))
-  fromK (App x y) = R1 (R1 (E (C (F x :*: F y))))
+  fromK (V   v)   = L1 (Field v)
+  fromK (Lam b)   = R1 (L1 (Exists (SuchThat (Exists (SuchThat (SuchThat (Field b)))))))
+  fromK (App x y) = R1 (R1 (Exists (SuchThat (Field x :*: Field y))))
 
-  toK (L1 (F v))                          = V v
-  toK (R1 (L1 (E (C (E (C (C (F b)))))))) = Lam b
-  toK (R1 (R1 (E (C (F x :*: F y)))))     = App x y
+  toK (L1 (Field v)) = V v
+  toK (R1 (L1 (Exists (SuchThat (Exists (SuchThat (SuchThat (Field b)))))))) = Lam b
+  toK (R1 (R1 (Exists (SuchThat (Field x :*: Field y))))) = App x y
 
 instance Typeable t => Alpha (Expr t) where
   aeq'        = aeqDefK

@@ -42,7 +42,6 @@ type Fields      d = [ Atom d (*) ]
 
 data Branch (d :: k) where
   E      :: Branch (p -> d) -> Branch d
-  ERefl  :: Branch (p -> d) -> Branch d
   (:=>:) :: Constraints d -> Fields d -> Branch d
 
 -- CONSTRAINTS
@@ -68,7 +67,7 @@ instance (Satisfies cs tys => AllFieldsP c fs tys) => AllFieldsBImplies c cs fs 
 
 type family AllFieldsP (c :: * -> Constraint) (d :: Fields k) (tys :: LoT k) :: Constraint where
   AllFieldsP c '[] tys = ()
-  AllFieldsP c (f ': fs) tys = (c (Ty f tys), AllFieldsP c fs tys)
+  AllFieldsP c (f ': fs) tys = (c (Interpret f tys), AllFieldsP c fs tys)
 
 type family AllAtoms (c :: Atom k (*) -> Constraint) (d :: DataType k) :: Constraint where
   AllAtoms c '[] = ()
@@ -85,13 +84,12 @@ type family AllAtomsP (c :: Atom k (*) -> Constraint) (d :: Fields k) :: Constra
 -- INTERPRETATIONS
 
 data NB (tys :: LoT d) (b :: Branch d) where
-  E_ :: NB (t ':&&: tys) c -> NB tys ('E c)
-  ERefl_ :: Typeable t => NB (t ':&&: tys) c -> NB tys ('ERefl c)
-  C_ :: Ty c tys => NB tys (cs ':=>: fs) -> NB tys ((c ': cs) ':=>: fs)
-  F_ :: NP (NA tys) fs -> NB tys ('[] ':=>: fs)
+  Exists_   :: NB (t ':&&: tys) c -> NB tys ('E c)
+  SuchThat_ :: Interpret c tys => NB tys (cs ':=>: fs) -> NB tys ((c ': cs) ':=>: fs)
+  Fields_   :: NP (NA tys) fs -> NB tys ('[] ':=>: fs)
 
 data NA (tys :: LoT d) (f :: Atom d (*)) where
-  A_ :: Ty f tys -> NA tys f
+  Atom_ :: Interpret f tys -> NA tys f
 
 type RepK (d :: DataType k) (tys :: LoT k) = NS (NB tys) d
 
@@ -181,23 +179,23 @@ instance ConvConstructor f f' tys
 
 instance ConvProduct U1 f' tys
          => ConvConstructor U1 ('[] ':=>: f') tys where
-  toGhcGenericsC  (F_ x) = toGhcGenericsP x
-  toKindGenericsC x = F_ (toKindGenericsP x)
+  toGhcGenericsC  (Fields_ x) = toGhcGenericsP x
+  toKindGenericsC x = Fields_ (toKindGenericsP x)
 
 instance ConvProduct (K1 i k) f' tys
          => ConvConstructor (K1 i k) ('[] ':=>: f') tys where
-  toGhcGenericsC  (F_ x) = toGhcGenericsP x
-  toKindGenericsC x = F_ (toKindGenericsP x)
+  toGhcGenericsC  (Fields_ x) = toGhcGenericsP x
+  toKindGenericsC x = Fields_ (toKindGenericsP x)
 
 instance ConvProduct (f :*: gs) f' tys
          => ConvConstructor (f :*: gs) ('[] ':=>: f') tys where
-  toGhcGenericsC  (F_ x) = toGhcGenericsP x
-  toKindGenericsC x = F_ (toKindGenericsP x)
+  toGhcGenericsC  (Fields_ x) = toGhcGenericsP x
+  toKindGenericsC x = Fields_ (toKindGenericsP x)
 
-instance (c ~ (Ty c' tys), ConvConstructor f (cs ':=>: f') tys)
+instance (c ~ (Interpret c' tys), ConvConstructor f (cs ':=>: f') tys)
          => ConvConstructor (c GG.:=>: f) ((c' ': cs) ':=>: f') tys where
-  toGhcGenericsC  (C_ x) = GG.SuchThat (toGhcGenericsC x)
-  toKindGenericsC (GG.SuchThat x) = C_ (toKindGenericsC x)
+  toGhcGenericsC  (SuchThat_ x) = GG.SuchThat (toGhcGenericsC x)
+  toKindGenericsC (GG.SuchThat x) = SuchThat_ (toKindGenericsC x)
 
 -- Products
 
@@ -230,9 +228,9 @@ class ConvAtom (gg :: * -> *) (ka :: Atom d (*)) (tys :: LoT d) where
   toGhcGenericsA  :: NA tys ka -> gg a
   toKindGenericsA :: gg a -> NA tys ka
 
-instance (k ~ (Ty t tys)) => ConvAtom (K1 i k) t tys where
-  toGhcGenericsA  (A_ x) = K1 x
-  toKindGenericsA (K1 x) = A_ x
+instance (k ~ (Interpret t tys)) => ConvAtom (K1 i k) t tys where
+  toGhcGenericsA  (Atom_ x) = K1 x
+  toKindGenericsA (K1 x) = Atom_ x
 
 instance ConvAtom f f' tys => ConvAtom (M1 i p f) f' tys where
   toGhcGenericsA x = M1 (toGhcGenericsA x)
