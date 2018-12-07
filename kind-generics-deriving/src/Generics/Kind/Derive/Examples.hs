@@ -9,10 +9,7 @@
 module Generics.Kind.Derive.Examples where
 
 import Data.PolyKinded.Functor
-import Data.Proxy
 import Data.Traversable (foldMapDefault)
-import GHC.Generics (Generic)
-import Type.Reflection
 
 import Generics.Kind
 import Generics.Kind.Examples
