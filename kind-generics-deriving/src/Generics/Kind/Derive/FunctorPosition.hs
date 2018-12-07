@@ -17,13 +17,12 @@ import Data.Proxy
 import Generics.Kind
 import GHC.TypeLits
 
-fmapDefaultPos :: forall f a as b bs v.
+fmapDefaultPos :: forall v f as bs.
                   (GenericK f as, GenericK f bs,
                    GFunctorPos (RepK f) v as bs)
-               => Proxy v
-               -> (Interpret (Var v) as -> Interpret (Var v) bs)
+               => (Interpret (Var v) as -> Interpret (Var v) bs)
                -> f :@@: as -> f :@@: bs
-fmapDefaultPos p f = toK @_ @f @bs . gfmapp p f . fromK @_ @f @as
+fmapDefaultPos f = toK @_ @f @bs . gfmapp (Proxy @v) f . fromK @_ @f @as
 
 class GFunctorPos (f :: LoT k -> *) (v :: TyVar k *)
                   (as :: LoT k) (bs :: LoT k) where

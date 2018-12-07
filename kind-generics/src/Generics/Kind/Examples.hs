@@ -76,6 +76,15 @@ instance GenericK (HappyFamily [a]) 'LoT0 where
 
 -- Hand-written instance
 
+data SimpleIndex :: * -> * -> * where
+  MkSimpleIndex :: [a] -> SimpleIndex [a] b
+
+instance GenericK SimpleIndex (a :&&: b :&&: LoT0) where
+  type RepK SimpleIndex
+    = Exists (*) ((Var1 :~: ([] :$: Var0)) :=>: Field ([] :$: Var0))
+  fromK (MkSimpleIndex x) = Exists (SuchThat (Field x))
+  toK (Exists (SuchThat (Field x))) = (MkSimpleIndex x)
+
 data WeirdTree a where
   WeirdBranch :: WeirdTree a -> WeirdTree a -> WeirdTree a 
   WeirdLeaf   :: Show a => t -> a -> WeirdTree a

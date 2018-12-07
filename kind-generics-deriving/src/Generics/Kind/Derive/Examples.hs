@@ -4,6 +4,8 @@
 {-# language MultiParamTypeClasses #-}
 {-# language FlexibleInstances     #-}
 {-# language TypeApplications      #-}
+{-# language ScopedTypeVariables   #-}
+{-# language InstanceSigs          #-}
 module Generics.Kind.Derive.Examples where
 
 import Data.PolyKinded.Functor
@@ -49,3 +51,9 @@ instance Show b => KFunctor WeirdTree '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) w
 -- WeirdTree with reflected existentials
 -- instance (Eq a) => Eq (WeirdTreeR a) where
   -- (==) = geq'
+
+{-
+instance Functor (SimpleIndex a) where
+  fmap :: forall b c. (b -> c) -> SimpleIndex a b -> SimpleIndex a c
+  fmap = fmapDefaultPos @(VS VZ) @SimpleIndex @(a :&&: b :&&: LoT0) @(a :&&: c :&&: LoT0)
+-}
