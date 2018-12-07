@@ -85,6 +85,18 @@ instance GenericK SimpleIndex (a :&&: b :&&: LoT0) where
   fromK (MkSimpleIndex x) = Exists (SuchThat (Field x))
   toK (Exists (SuchThat (Field x))) = (MkSimpleIndex x)
 
+instance GenericK (SimpleIndex a) (b :&&: LoT0) where
+  type RepK (SimpleIndex a)
+    = Exists (*) ((Kon a :~: ([] :$: Var0)) :=>: Field ([] :$: Var0))
+  fromK (MkSimpleIndex x) = Exists (SuchThat (Field x))
+  toK (Exists (SuchThat (Field x))) = (MkSimpleIndex x)
+
+instance GenericK (SimpleIndex a b) LoT0 where
+  type RepK (SimpleIndex a b)
+    = Exists (*) ((Kon a :~: ([] :$: Var0)) :=>: Field ([] :$: Var0))
+  fromK (MkSimpleIndex x) = Exists (SuchThat (Field x))
+  toK (Exists (SuchThat (Field x))) = (MkSimpleIndex x)
+
 data WeirdTree a where
   WeirdBranch :: WeirdTree a -> WeirdTree a -> WeirdTree a 
   WeirdLeaf   :: Show a => t -> a -> WeirdTree a

@@ -5,7 +5,8 @@
 {-# language PolyKinds       #-}
 {-# language ConstraintKinds #-}
 {-# language RankNTypes      #-}
-{-# language AllowAmbiguousTypes #-}
+{-# language AllowAmbiguousTypes  #-}
+{-# language UndecidableInstances #-}
 module Data.PolyKinded.Atom where
 
 import Data.Kind
@@ -60,3 +61,17 @@ newtype SuchThatI (c :: Atom d Constraint) (f :: Atom d (*)) (tys :: LoT d) wher
 type family Satisfies (cs :: [Atom d Constraint]) (tys :: LoT d) :: Constraint where
   Satisfies '[]       tys = ()
   Satisfies (c ': cs) tys = (Interpret c tys, Satisfies cs tys)
+
+type family ContainsTyVar (v :: TyVar d k) (t :: Atom d p) :: Bool where
+  ContainsTyVar v (Var v)     = 'True
+  ContainsTyVar v (Var w)     = 'False
+  ContainsTyVar v (Kon t)     = 'False
+  ContainsTyVar v (f :@: x)   = Or (ContainsTyVar v f) (ContainsTyVar v x)
+  ContainsTyVar v (x :&: y)   = Or (ContainsTyVar v x) (ContainsTyVar v y)
+  ContainsTyVar v (c :=>>: f) = Or (ContainsTyVar v c) (ContainsTyVar v f)
+  ContainsTyVar v (ForAll f)  = ContainsTyVar (VS v) f
+
+type family Or (x :: Bool) (y :: Bool) :: Bool where
+  Or True  thing = True
+  Or thing True  = True
+  Or False False = False

@@ -18,8 +18,6 @@ import Data.Proxy
 import Data.Kind
 import Generics.Kind
 
-type LoT1 a = a ':&&: 'LoT0
-
 fmapDefaultOne :: (GenericK f (LoT1 a),
                    GenericK f (LoT1 b),
                    GFunctorOne (RepK f),

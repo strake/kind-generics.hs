@@ -34,15 +34,14 @@ instance KFunctor Tree '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
   kfmap = kfmapDefault
 instance Functor Tree where
   -- fmap = fmapDefault
-  -- fmap = fmapDefaultPos (Proxy :: Proxy VZ)
   fmap = fmapDefaultOne
 instance Foldable Tree where
   foldMap = foldMapDefault
 instance Traversable Tree where
-  traverse = traverseDefault @Tree @(_ :&&: LoT0) @(_ :&&: LoT0) (Proxy :: Proxy VZ)
+  traverse = traverseDefault
 
 fmapEither :: (a -> b) -> Either e a -> Either e b
-fmapEither = fmapDefaultOne
+fmapEither = fmapDefault'
 
 -- WeirdTree
 instance Show b => KFunctor WeirdTree '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) where
@@ -52,8 +51,9 @@ instance Show b => KFunctor WeirdTree '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0) w
 -- instance (Eq a) => Eq (WeirdTreeR a) where
   -- (==) = geq'
 
-{-
 instance Functor (SimpleIndex a) where
-  fmap :: forall b c. (b -> c) -> SimpleIndex a b -> SimpleIndex a c
-  fmap = fmapDefaultPos @(VS VZ) @SimpleIndex @(a :&&: b :&&: LoT0) @(a :&&: c :&&: LoT0)
--}
+  fmap = fmapDefault
+instance Foldable (SimpleIndex a) where
+  foldMap = foldMapDefault
+instance Traversable (SimpleIndex a) where
+  traverse = traverseDefault

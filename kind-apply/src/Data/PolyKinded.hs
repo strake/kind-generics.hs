@@ -13,7 +13,7 @@
 {-# language ConstraintKinds        #-}
 module Data.PolyKinded (
   -- * Lists of types and application
-  LoT(..), (:@@:)
+  LoT(..), (:@@:), LoT1, LoT2
   -- * Splitting types
 , SplitF, Nat(..), TyEnv(..), SplitN
 ) where
@@ -26,6 +26,9 @@ data LoT k where
   LoT0    ::                LoT (*)
   -- | Cons a type with a list of types.
   (:&&:)  :: k -> LoT ks -> LoT (k -> ks)
+
+type LoT1 a = a ':&&: 'LoT0
+type LoT2 a b = a ':&&: b ':&&: LoT0
 
 -- | Apply a list of types to a type constructor.
 --
