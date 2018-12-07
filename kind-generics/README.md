@@ -375,7 +375,7 @@ class GFunctor (f :: LoT k -> *) (v :: TyVar d *) (as :: LoT k) (bs :: LoT k) wh
 This additional `TyVar` is not only needed to write the type of `gmap`. Also, if we want to handle the case of constructors with *existentials*, we need to account for the change of index for the variable.
 
 ```haskell
-instance (forall (t :: k). GFunctor f (VS v) (t ':&&: as) (t ':&&: bs))
+instance (forall (t :: k). GFunctor f (VS v) (t :&&: as) (t :&&: bs))
          => GFunctor (Exists k f) as bs where ...
 ```
 
