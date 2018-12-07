@@ -314,7 +314,7 @@ A more powerful approach to using `kind-generics` is to imitate the separation d
 
 ```haskell
 class GShow (f :: LoT k -> *) (x :: LoT k) where
-  gshow :: f :@@: x -> String
+  gshow :: f x -> String
 
 instance GShow U1 x ...
 instance (GShow f x, GShow g x) => GShow (f :+: g) x ...
@@ -376,7 +376,7 @@ This additional `TyVar` is not only needed to write the type of `gmap`. Also, if
 
 ```haskell
 instance (forall (t :: k). GFunctor f (VS v) (t :&&: as) (t :&&: bs))
-         => GFunctor (Exists k f) as bs where ...
+         => GFunctor (Exists k f) v as bs where ...
 ```
 
 The rest of the implementation of `GFunctor` can be found in `kind-generics-deriving`. The most complex part is to detect whether a field mentions the specific variable we are mapping over, because otherwise the data has to remain constant. Luckily, the very strong types guarantee that we don't make a mistake.
