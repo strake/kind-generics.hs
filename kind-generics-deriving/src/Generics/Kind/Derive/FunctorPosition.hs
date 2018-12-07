@@ -15,6 +15,7 @@ module Generics.Kind.Derive.FunctorPosition where
 
 import Data.Proxy
 import Generics.Kind
+import GHC.TypeLits
 
 fmapDefaultPos :: forall f a as b bs v.
                   (GenericK f as, GenericK f bs,
@@ -62,45 +63,68 @@ instance forall k f v as bs.
   gfmapp _ v (Exists (x :: f (t ':&&: x)))
     = Exists (gfmapp' @(t ':&&: x) @(t ':&&: _) (Proxy @('VS v)) v x)
 
+type family ContainsTyVar (v :: TyVar d k) (t :: Atom d p) :: Bool where
+  ContainsTyVar v (Var v)   = 'True
+  ContainsTyVar v (Var w)   = 'False
+  ContainsTyVar v (Kon t)   = 'False
+  ContainsTyVar v (f :@: x) = Or (ContainsTyVar v f) (ContainsTyVar v x)
+  ContainsTyVar v other     = 'False
+
+type family Or (x :: Bool) (y :: Bool) :: Bool where
+  Or True  thing = True
+  Or thing True  = True
+  Or False False = False
+
 class GFunctorArgPos (t :: Atom d (*)) (v :: TyVar d *)
-                     (as :: LoT d) (bs :: LoT d) where
-  gfmappf :: Proxy t -> Proxy v -> Proxy as -> Proxy bs
+                     (as :: LoT d) (bs :: LoT d)
+                     (p :: Bool) where
+  gfmappf :: Proxy t -> Proxy v -> Proxy as -> Proxy bs -> Proxy p
           -> (Interpret (Var v) as -> Interpret (Var v) bs)
           -> Interpret t as -> Interpret t bs
 
-instance forall t v as bs. GFunctorArgPos t v as bs
+instance forall t v as bs. GFunctorArgPos t v as bs (ContainsTyVar v t)
          => GFunctorPos (Field t) v as bs where
-  gfmapp p v (Field x) = Field (gfmappf (Proxy @t) p (Proxy @as) (Proxy @bs) v x)
+  gfmapp p v (Field x) = Field (gfmappf (Proxy @t) p (Proxy @as) (Proxy @bs) (Proxy @(ContainsTyVar v t)) v x)
 
-instance GFunctorArgPos ('Kon t) v as bs where
-  gfmappf _ _ _ _ _ = id
+instance (Interpret t as ~ Interpret t bs) => GFunctorArgPos t v as bs False where
+  gfmappf _ _ _ _ _ _ = id
+
+instance TypeError (Text "Should never get here")
+         => GFunctorArgPos ('Kon t) v as bs whatever where
+  gfmappf _ _ _ _ _ _ = id
 
 -- We found the same variable
-instance GFunctorArgPos ('Var 'VZ) 'VZ (a ':&&: as) (b ':&&: bs) where
-  gfmappf _ _ _ _ f x = f x
+instance GFunctorArgPos ('Var 'VZ) 'VZ (a ':&&: as) (b ':&&: bs) True where
+  gfmappf _ _ _ _ _ f x = f x
 -- We need to keep looking
-instance forall v n r as s bs.
-         GFunctorArgPos ('Var v) n as bs
-         => GFunctorArgPos ('Var ('VS v)) ('VS n) (r ':&&: as) (s ':&&: bs) where
-  gfmappf _ _ _ _ f x = gfmappf (Proxy @('Var v)) (Proxy @n) (Proxy @as) (Proxy @bs) f x
+instance forall v n r as s bs isthere.
+         GFunctorArgPos ('Var v) n as bs isthere
+         => GFunctorArgPos ('Var ('VS v)) ('VS n) (r ':&&: as) (s ':&&: bs) isthere where
+  gfmappf _ _ _ _ _ f x
+    = gfmappf (Proxy @('Var v)) (Proxy @n) (Proxy @as) (Proxy @bs) (Proxy @isthere) f x
 -- If we arrive to another we do not want, keep it as it is
-instance GFunctorArgPos ('Var 'VZ) ('VS n) (r ':&&: as) (r ':&&: bs) where
-  gfmappf _ _ _ _ _ x = x
+instance TypeError (Text "Should never get here")
+         => GFunctorArgPos ('Var 'VZ) ('VS n) (r ':&&: as) (r ':&&: bs) whatever where
+  gfmappf _ _ _ _ _ _ x = x
 
 -- Going through functor
 instance forall f x v as bs.
-         (Functor f, GFunctorArgPos x v as bs)
-         => GFunctorArgPos (f :$: x) v as bs where
-  gfmappf _ _ _ _ f x = fmap (gfmappf (Proxy @x) (Proxy @v) (Proxy @as) (Proxy @bs) f) x
+         ( Functor f, GFunctorArgPos x v as bs (ContainsTyVar v x) )
+         => GFunctorArgPos (f :$: x) v as bs True where
+  gfmappf _ _ _ _ _ f x
+    = fmap (gfmappf (Proxy @x) (Proxy @v) (Proxy @as) (Proxy @bs) (Proxy @(ContainsTyVar v x)) f) x
 
 instance forall f y x v as bs.
-         (Functor (f (Interpret y as)), Interpret y as ~ Interpret y bs, GFunctorArgPos x v as bs)
-         => GFunctorArgPos (f :$: y ':@: x) v as bs where
-  gfmappf _ _ _ _ f x = fmap (gfmappf (Proxy @x) (Proxy @v) (Proxy @as) (Proxy @bs) f) x
+         ( Functor (f (Interpret y as)), Interpret y as ~ Interpret y bs
+         , GFunctorArgPos x v as bs (ContainsTyVar v x) )
+         => GFunctorArgPos (f :$: y ':@: x) v as bs True where
+  gfmappf _ _ _ _ _ f x
+    = fmap (gfmappf (Proxy @x) (Proxy @v) (Proxy @as) (Proxy @bs) (Proxy @(ContainsTyVar v x)) f) x
 
 instance forall f y1 y2 x v as bs.
          (Functor (f (Interpret y1 as) (Interpret y2 as)),
           Interpret y1 as ~ Interpret y1 bs, Interpret y2 as ~ Interpret y2 bs,
-          GFunctorArgPos x v as bs)
-         => GFunctorArgPos (f :$: y1 ':@: y2 ':@: x) v as bs where
-  gfmappf _ _ _ _ f x = fmap (gfmappf (Proxy @x) (Proxy @v) (Proxy @as) (Proxy @bs) f) x
+          GFunctorArgPos x v as bs (ContainsTyVar v x) )
+         => GFunctorArgPos (f :$: y1 ':@: y2 ':@: x) v as bs True where
+  gfmappf _ _ _ _ _ f x
+    = fmap (gfmappf (Proxy @x) (Proxy @v) (Proxy @as) (Proxy @bs) (Proxy @(ContainsTyVar v x)) f) x
