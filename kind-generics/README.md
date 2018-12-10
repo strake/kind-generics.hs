@@ -452,7 +452,7 @@ instance {-# OVERLAPPABLE #-} GFunctorField (Var v) w as bs where ...
 
 The problem is that we require overlapping instances, which lead to brittle type checking, and are commonly regarded as a construct to avoid if possible. Fortunately, we can work around this problem in two different ways:
 
-### Preventing overlapping with more instances
+#### Preventing overlapping with more instances
 
 Let us think for a moment how we would compare two type variables if we were writing the function in usual term-level Haskell. Usually the two final equations would be written with a catch-all pattern, but here it's important to have non-overlapping equations.
 
@@ -481,7 +481,7 @@ instance GFunctorField (Var (VS v)) VZ (r :&&: LoT0) (r :&&: LoT0) True where
   gmapf _ = id
 ```
 
-### Preventing overlapping using a type family
+#### Preventing overlapping using a type family
 
 If you are not afraid of throwing more machinery at the problem, there's another approach to solve this problem. Checking for equality of types is brittle when used in the head of a type class. However, *closed* type families provide this ability in a well-behaved way:
 
@@ -521,10 +521,16 @@ The last question is how do tell `GFunctorField` to use the result of `EqualTyVa
 ```haskell
 instance forall v w as bs. GFunctorVar v w as bs (EqualTyVar v w)
          => GFunctorField (Var v) w as bs where
-  gfmappf = gfmappv @_ @v @w @as @bs @(EqualTyVar v w)
+  gmapf = gmapv @_ @v @w @as @bs @(EqualTyVar v w)
 ```
 
 Adding this instance requires the `UndecidableInstances` extension, because GHC cannot guarantee resolution will terminate (as far as the compiler knows, `EqualTyVar` could be doing arbitrary computation). For that reason, I personally prefer to use the previous approach.
+
+### More tricks for `Functor`
+
+The implementation of `GFunctor` outlined above is correct, but could be more expensive that a hand-written one. For example, if you have a field of type `[[Int]]`, the implementation you get is equivalent to `fmap (fmap id)`: two levels of `fmap` corresponding to the two nested lists, and `id` because `Int` is a constant. But a programmer would just notice that the entire field never mentions a type variable, and would write `id` directly.
+
+If you look at the implementation of `GFunctor` in `kind-generics-deriving` (called [`GFunctorPosition`](https://gitlab.com/trupill/kind-generics/blob/master/kind-generics-deriving/src/Generics/Kind/Derive/FunctorPosition.hs) in that library), you will notice a call to `ContainsTyVar` in the instance for `Field`. The role of this parameter is to short-cut evaluation in those cases. So before going into the `GFunctorField` recursive structure, we check whether the field mentions the type variable we are interested in.
 
 ## Conclusion and limitations
 
