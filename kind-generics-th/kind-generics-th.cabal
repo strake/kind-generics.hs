@@ -23,7 +23,7 @@ source-repository head
 library
   exposed-modules:     Generics.Kind.TH
   build-depends:       base >=4.12 && <5
-                     , kind-generics >=0.2.1
+                     , kind-generics >=0.3
                      , template-haskell >=2.14 && <2.15
                      , th-abstraction >=0.2.8 && <0.3
   hs-source-dirs:      src
