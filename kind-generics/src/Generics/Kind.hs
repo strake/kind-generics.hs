@@ -60,14 +60,14 @@ deriving instance Show (Interpret t x) => Show (Field t x)
 -- > data Showable a = Show a => a -> X a
 -- >
 -- > instance GenericK Showable (a :&&: LoT0) where
--- >   type RepK Showable = (Show :$: a) :=>: (Field V0)
+-- >   type RepK Showable = (Show :$: a) :=>: (Field Var0)
 data (:=>:) (c :: Atom d Constraint) (f :: LoT d -> *) (x :: LoT d) where
   SuchThat :: Interpret c x => f x -> (c :=>: f) x
 deriving instance (Interpret c x => Show (f x)) => Show ((c :=>: f) x)
 
 -- | Existentials: a representation of the form @E f@ describes
 -- a constructor whose inner type is represented by @f@, and where
--- the type variable at index 0, @V0@, is existentially quantified.
+-- the type variable at index 0, @Var0@, is existentially quantified.
 --
 -- > data E where
 -- >  E :: t -> Exists
@@ -90,7 +90,7 @@ deriving instance (forall t. Show (f (t ':&&: x))) => Show (Exists k f x)
 -- > instance GenericK Either (a :&&: b :&&: LoT0)
 class GenericK (f :: k) (x :: LoT k) where
   type RepK f :: LoT k -> *
-  
+
   -- | Convert the data type to its representation.
   fromK :: f :@@: x -> RepK f x
   default
