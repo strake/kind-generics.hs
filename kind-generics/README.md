@@ -468,7 +468,7 @@ Each of these branches can be translated into an instance of `GFunctorField`. No
 
 ```haskell
 -- case VZ / VZ -> apply the function
-instance GFunctorField (Var 'VZ) VZ (a :&&: as) (b :&&: bs) where
+instance GFunctorField (Var VZ) VZ (a :&&: as) (b :&&: bs) where
   gmapf f x = f x
 -- case VS v / VS w -> recur
 instance forall v w r as s bs. GFunctorField (Var v) w as bs
