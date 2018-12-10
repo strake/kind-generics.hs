@@ -1,5 +1,7 @@
 # `kind-generics`: generic programming for arbitrary kinds and GADTs
 
+*Note:*: This README is a work in progress. The most up-to-date version of this document can be found in [GitLab](https://gitlab.com/trupill/kind-generics/blob/master/kind-generics/README.md).
+
 Data type-generic programming in Haskell is restricted to types of kind `*` (by using `Generic`) or `* -> *` (by using `Generic1`). This works fine for implementing generic equality or generic printing, notions which are applied to types of kind `*`. But what about having a generic `Bifunctor` or `Contravariant`? We need to extend our language for describing data types to other kinds -- hopefully without having to introduce `Generic2`, `Generic3`, and so on.
 
 The language for describing data types in `GHC.Generics` is also quite restricted. In particular, it can only describe algebraic data types, not the full extent of GADTs. It turns out that both problems are related: if you want to describe a constructor of the form `forall a. blah`, then `blah` must be a data type which takes one additional type variable. As a result, we need to enlarge and shrink the kind at will.
