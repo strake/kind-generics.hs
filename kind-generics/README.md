@@ -365,12 +365,11 @@ Following the approach outlined above, we need to reify the arguments to `f` as 
 class GFunctor (f :: LoT k -> *) (as :: LoT k) (bs :: LoT k) where ...
 ```
 
-The problem now is that `as` and `bs` are *lists* of types. But the functor action only works over the *last* one (in general, only over *one* position). So how do we express the type of `gmap`? We can use a `TyVar` to specify that position, and the interpret it over the list of types. Since the new variable `v` appears only as argument to a type family, we need some kind of `Proxy` type to make GHC happy.
+The problem now is that `as` and `bs` are *lists* of types. But the functor action only works over the *last* one (in general, only over *one* position). So how do we express the type of `gmap`? We can use a `TyVar` to specify that position, and the interpret it over the list of types. Since the new variable `v` appears only as argument to a type family, we need some kind of `Proxy` type to make GHC happy, or to enable the `AllowAmbiguousTypes` extension and work around the lack of inference with type applications.
 
 ```haskell
 class GFunctor (f :: LoT k -> *) (v :: TyVar d *) (as :: LoT k) (bs :: LoT k) where
-  gmap :: Proxy v
-       -> (Interpret (Var v) as -> Interpret (Var v) bs)
+  gmap :: (Interpret (Var v) as -> Interpret (Var v) bs)
        -> f as -> f bs
 ```
 
@@ -381,13 +380,151 @@ instance (forall (t :: k). GFunctor f (VS v) (t :&&: as) (t :&&: bs))
          => GFunctor (Exists k f) v as bs where ...
 ```
 
-The rest of the implementation of `GFunctor` can be found in `kind-generics-deriving`. The most complex part is to detect whether a field mentions the specific variable we are mapping over, because otherwise the data has to remain constant. Luckily, the very strong types guarantee that we don't make a mistake.
-
 We have seen three ways of handling generic operations in `kind-generics`:
 
 * *Introducing a requirements constraint*. This is the simpler one, and code stays almost verbatim from a `GHC.Generics` implementation. However, we cannot support existentials or constraints.
 * *Using an explicit list of types*. In this case the code can also be copied almost verbatim from a `GHC.Generics` implementations. The type class implementing the generic operation is enlarged with additional parameters to account for the lists of types which are applied in the operations. With this approach we can handle almost any operation which consumes a value of a GADT.
 * *Explicit list of types + position*. When defining generic operations over higher-rank types -- like `Functor` -- it is usually required to have an additional parameter in the type class to account for the *position* (or positions) which are affected by the operation. We need to do so because going under the `Exists` constructor shifts the indices of the variables.
+
+### Inspecting atoms
+
+The implementation of `GFunctor` follows the general pattern of calling `gmap` recursively when you find sums, products, constraints, or existentials. The complex part comes in the handling of fields: at that point we need to figure out whether the atom in that field mentions the specific variable we are mapping over, so we can apply the corresponding function. Take for example the representation of `Either`:
+
+```haskell
+type RepK Either = Field Var0 :+: Field Var1
+```
+
+If we want to implement the usual `fmap`, we need to map over `Var1`, but not over `Var0`. This section shows the technique required to do so. Luckily, the very strong types guarantee that we don't make a mistake.
+
+In order to distinguish the shape of the atoms we need to introduce another type class, `GFunctorField`. It looks pretty much like `GFunctor`, with the difference that its first argument is an *atom* instead of a *pattern functor*. In turn, this means that in the type signature of its methods we need to interpret the atom to turn it into a type. Here are the two type classes side by side:
+
+```haskell
+class GFunctorField (t :: Atom k (*)) (v :: TyVar d *) (as :: LoT k) (bs :: LoT k) where
+  gmapf :: (Interpret (Var v) as -> Interpret (Var v) bs)
+        -> Interpret t as -> Interpret t bs
+-- compare with
+class GFunctor      (f :: LoT k -> *) (v :: TyVar d *) (as :: LoT k) (bs :: LoT k) where
+  gmap  :: (Interpret (Var v) as -> Interpret (Var v) bs)
+        -> f as -> f bs
+```
+
+If we assume that we satisfy the `GFunctorField` constraint for a given atom, we can write the `GFunctor` instance for the field constructor. Note that we have used explicit type applications because many of these types are ambiguous and cannot be resolved otherwise:
+
+```haskell
+instance forall t v as bs. GFunctorField t v as bs
+         => GFunctorPos (Field t) v as bs where
+  gmap f (Field x) = Field (gmapf @_ @t @v @as @bs f x)
+```
+
+This pattern is very common when dealing with generic derivation of operations for types which are not of kind `*`: introduce first a type class for the pattern functors, and then another one with each specific shape of `Field` you may have. Now the question turns into how to write each of the instances of `GFunctorField`.
+
+Let's begin with the simplest one. If we have a constant, we know we don't need to apply any function to it. So `gmapf` is effectively just the identity function:
+
+```haskell
+instance GFunctorField (Kon t) v as bs where
+  gfmappf _ = id
+```
+
+Another case we can handle is an type application of the form `f x`, provided that `f` is a functor and we recursively know how to map over `x`. Think of a data type similar to rose trees:
+
+```haskell
+data Rose a = a :<: [Rose a]
+```
+
+If we would write the functor instance by hand, in the case of the field of type `[Rose a]`, we would `fmap` over the list, using as argument the recursive `fmap` over `Rose`. The same pattern is capture with the following instance:
+
+```haskell
+instance forall f x v as bs.
+         ( Functor (Interpret f as), Interpret f as ~ Interpret f bs
+         , GFunctorField x v as bs )
+         => GFunctorField (f :@: x) v as bs where
+  gmapf f x = fmap (gmapf @_ @x @v @as @bs f) x
+```
+
+Ok, a bit more is happening than we I have just stated. The additional requirement `Interpret f as ~ Interpret f bs` forces the type constructor being applied to remain constant. This covers the case of `[Rose a]` being mapped of `[Rose b]`, since the type constructor is `[]` regardless of the type of its elements. However, `kind-generics` makes it possible to express more exotic types such as `Var1 :@: Var0`; in that case we are only able to constructor the generic mapping operation if the argument to `Var1` is the same in both input and output lists of kinds.
+
+We come to the most important case: how to handle variables. The idea is quite simple: we want to apply the function only if the atom is the same variable as the one we intended to map over. Otherwise, the `gmap` function should keep the field as it was. A first approach would be to use the following two instances:
+
+```haskell
+instance {-# OVERLAPS     #-} GFunctorField (Var v) v as bs where ...
+instance {-# OVERLAPPABLE #-} GFunctorField (Var v) w as bs where ...
+```
+
+The problem is that we require overlapping instances, which lead to brittle type checking, and are commonly regarded as a construct to avoid if possible. Fortunately, we can work around this problem in two different ways:
+
+### Preventing overlapping with more instances
+
+Let us think for a moment how we would compare two type variables if we were writing the function in usual term-level Haskell. Usually the two final equations would be written with a catch-all pattern, but here it's important to have non-overlapping equations.
+
+```haskell
+compareTyVar :: TyVar d k -> TyVar d k -> Bool
+compareTyVar VZ     VZ     = True
+compareTyVar (VS v) (VS w) = compareTyVar v w
+compareTyVar (VS v) VZ     = False
+compareTyVar VZ     (VS w) = False
+```
+
+Each of these branches can be translated into an instance of `GFunctorField`. Note that the shape of the second argument limits the shape of the lists of types given afterwards, and this is reflected in the instances:
+
+```haskell
+-- case VZ / VZ -> apply the function
+instance GFunctorField (Var 'VZ) VZ (a :&&: as) (b :&&: bs) where
+  gmapf f x = f x
+-- case VS v / VS w -> recur
+instance forall v w r as s bs. GFunctorField (Var v) w as bs
+         => GFunctorField (Var (VS v)) (VS w) (r :&&: as) (s :&&: bs) where
+  gmapf f x = gmapf @d @(Var v) @w @as @bs f x
+-- cases for different head constructors
+instance GFunctorField (Var VZ) (VS w) (r :&&: as)   (r :&&: bs) where
+  gmapf _ = id
+instance GFunctorField (Var (VS v)) VZ (r :&&: LoT0) (r :&&: LoT0) True where
+  gmapf _ = id
+```
+
+### Preventing overlapping using a type family
+
+If you are not afraid of throwing more machinery at the problem, there's another approach to solve this problem. Checking for equality of types is brittle when used in the head of a type class. However, *closed* type families provide this ability in a well-behaved way:
+
+```haskell
+type family EqualTyVar (v :: TyVar d (*)) (w :: TyVar d (*)) :: Bool where
+  EqualTyVar v v = True
+  EqualTyVar v w = False
+```
+
+So what we can do is to introduce (yet) another type class which dispatches based on the result of applying `EqualTyVar` to the two involved type variables.
+
+```haskell
+class GFunctorVar (v :: TyVar d *) (w :: TyVar d *)
+                  (as :: LoT d) (bs :: LoT d) 
+                  (equal :: Bool) where
+  gmapv :: (Interpret (Var w) as -> Interpret (Var w) bs)
+        ->  Interpret (Var v) as -> Interpret (Var v) bs
+```
+
+We have two cases: if the `equal` parameter is `True`, we know by construction that `v` and `w` are equal. Haskell's type system is not strong enough to carry on this evidence, but we can force this to happen using a type equality as constraint. So the following instance corresponds (finally) to the case in which we need to apply the function to the argument:
+
+```haskell
+instance v ~ w => GFunctorVar v w as bs True where
+  gmapv f x = f x
+```
+
+In the other case we know by construction that interpreting `Var v` should result into the same type, since we are not mapping over it. Once again, we cannot bring the evidence from `EqualTyVar` to this point, but we can force GHC to check that it is the case using a type equality as constraint:
+
+```haskell
+instance (Interpret (Var v) as ~ Interpret (Var v) bs)
+        => GFunctorVar v w as bs False where
+  gmapv _ = id
+```
+
+The last question is how do tell `GFunctorField` to use the result of `EqualTyVar` to choose an instance? We simply call the type family in the `instance` declaration:
+
+```haskell
+instance forall v w as bs. GFunctorVar v w as bs (EqualTyVar v w)
+         => GFunctorField (Var v) w as bs where
+  gfmappf = gfmappv @_ @v @w @as @bs @(EqualTyVar v w)
+```
+
+Adding this instance requires the `UndecidableInstances` extension, because GHC cannot guarantee resolution will terminate (as far as the compiler knows, `EqualTyVar` could be doing arbitrary computation). For that reason, I personally prefer to use the previous approach.
 
 ## Conclusion and limitations
 

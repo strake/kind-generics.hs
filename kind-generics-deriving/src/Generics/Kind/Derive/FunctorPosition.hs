@@ -103,3 +103,29 @@ instance forall (v :: TyVar d (*)) n r as s bs isthere.
 instance TypeError (Text "Should never get here")
          => GFunctorArgPos ('Var 'VZ) ('VS n) (r ':&&: as) (r ':&&: bs) True where
   gfmappf _ = id
+instance TypeError (Text "Should never get here")
+         => GFunctorArgPos ('Var ('VS n)) 'VZ (r ':&&: LoT0) (r ':&&: LoT0) True where
+  gfmappf _ = id
+
+-- Alternative implementation
+{-
+type family EqualTyVar (v :: TyVar d (*)) (w :: TyVar d (*)) :: Bool where
+  EqualTyVar v v = True
+  EqualTyVar v w = False
+
+class GFunctorVarPos (v :: TyVar d *) (w :: TyVar d *)
+                     (as :: LoT d) (bs :: LoT d)
+                     (equal :: Bool) where
+  gfmappv :: (Interpret (Var w) as -> Interpret (Var w) bs)
+          -> Interpret (Var v) as -> Interpret (Var v) bs
+
+instance v ~ w => GFunctorVarPos v w as bs True where
+  gfmappv f = f
+instance (Interpret (Var v) as ~ Interpret (Var v) bs)
+        => GFunctorVarPos v w as bs False where
+  gfmappv _ = id
+
+instance forall v w as bs. GFunctorVarPos v w as bs (EqualTyVar v w)
+         => GFunctorArgPos (Var v) w as bs True where
+  gfmappf = gfmappv @_ @v @w @as @bs @(EqualTyVar v w)
+-}
