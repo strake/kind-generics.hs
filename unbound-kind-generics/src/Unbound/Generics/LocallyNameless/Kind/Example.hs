@@ -8,12 +8,14 @@
 {-# language QuantifiedConstraints #-}
 {-# language TypeApplications #-}
 {-# language ScopedTypeVariables #-}
+{-# language TemplateHaskell #-}
 -- | Example of how to use `unbound-kind-generics`
 module Unbound.Generics.LocallyNameless.Kind.Example where
 
 import Data.Typeable (Typeable)
 import qualified Data.Typeable as T
 import Generics.Kind
+import Generics.Kind.TH
 import Unbound.Generics.LocallyNameless
 import Unbound.Generics.LocallyNameless.Kind.Derive
 
@@ -25,6 +27,8 @@ data Expr t where
   V   :: Var t -> Expr t
   Lam :: (Typeable a, Typeable b) => (Bind (Var a) (Expr b)) -> Expr (a -> b)
   App :: (Typeable a) => Expr (a -> b) -> Expr a -> Expr b
+
+$(deriveGenericK ''Expr)
 
 eval :: Typeable t => Expr t -> FreshM (Expr t)
 eval (V x) = fail $ "unbound variable " ++ show x
@@ -51,6 +55,9 @@ example =
 
 deriving instance Show (Expr t)
 
+
+
+{-
 instance GenericK (Expr t) LoT0 where
   type RepK (Expr t) =
     ((Field (Kon (Name (Expr t)))))
@@ -73,6 +80,7 @@ instance GenericK (Expr t) LoT0 where
   toK (L1 (Field v)) = V v
   toK (R1 (L1 (Exists (SuchThat (Exists (SuchThat (SuchThat (Field b)))))))) = Lam b
   toK (R1 (R1 (Exists (SuchThat (Field x :*: Field y))))) = App x y
+-}
 
 instance Typeable t => Alpha (Expr t) where
   aeq'        = aeqDefK

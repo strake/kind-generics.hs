@@ -9,6 +9,7 @@
 {-# language GADTs #-}
 {-# language ScopedTypeVariables #-}
 {-# language TypeApplications #-}
+{-# language ConstraintKinds #-}
 module Unbound.Generics.LocallyNameless.Kind.Derive (
   -- Default definitions for 'Alpha'
   aeqDefK
@@ -47,70 +48,78 @@ import Unbound.Generics.LocallyNameless.Subst
 import Unbound.Generics.PermM
 import Generics.Kind
 
-aeqDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
+type GenericAlpha a = (GenericK a LoT0, GAlphaK (RepK a) LoT0 LoT0)
+
+aeqDefK :: forall a. (GenericAlpha a)
         => AlphaCtx -> a -> a -> Bool
 aeqDefK c = (gaeqK c) `on` (fromK @_ @a @LoT0)
-fvAnyDefK :: forall g a. (GenericK a LoT0, GAlphaK (RepK a) LoT0, Contravariant g, Applicative g)
+fvAnyDefK :: forall g a. (GenericAlpha a, Contravariant g, Applicative g)
           => AlphaCtx -> (AnyName -> g AnyName) -> a -> g a 
 fvAnyDefK c nfn = fmap (toK @_ @a @LoT0) . gfvAnyK c nfn . fromK @_ @a @LoT0
-closeDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
+closeDefK :: forall a. (GenericAlpha a)
           => AlphaCtx -> NamePatFind -> a -> a 
 closeDefK c b = toK @_ @a @LoT0 . gcloseK c b . fromK @_ @a @LoT0
-openDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
+openDefK :: forall a. (GenericAlpha a)
          => AlphaCtx -> NthPatFind -> a -> a 
 openDefK c b = toK @_ @a @LoT0 . gopenK c b . fromK @_ @a @LoT0
-isPatDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
+isPatDefK :: forall a. (GenericAlpha a)
           => a -> DisjointSet AnyName
 isPatDefK = gisPatK . fromK @_ @a @LoT0
-isTermDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
+isTermDefK :: forall a. (GenericAlpha a)
            => a -> All
 isTermDefK = gisTermK . fromK @_ @a @LoT0
 isEmbedDefK :: a -> Bool
 isEmbedDefK _ = False
-nthPatFindDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
+nthPatFindDefK :: forall a. (GenericAlpha a)
                => a -> NthPatFind
 nthPatFindDefK = gnthPatFindK . fromK @_ @a @LoT0
-namePatFindDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
+namePatFindDefK :: forall a. (GenericAlpha a)
                 => a -> NamePatFind
 namePatFindDefK = gnamePatFindK . fromK @_ @a @LoT0
-swapsDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
+swapsDefK :: forall a. (GenericAlpha a)
           => AlphaCtx -> Perm AnyName -> a -> a 
 swapsDefK ctx perm = toK @_ @a @LoT0 . gswapsK ctx perm . fromK @_ @a @LoT0
-lfreshenDefK :: forall m a b. (LFresh m, GenericK a LoT0, GAlphaK (RepK a) LoT0)
+lfreshenDefK :: forall m a b. (LFresh m, GenericAlpha a)
              => AlphaCtx -> a -> (a -> Perm AnyName -> m b) -> m b 
 lfreshenDefK ctx m cont = glfreshenK ctx (fromK @_ @a @LoT0 m) (cont . toK @_ @a @LoT0)
-freshenDefK :: forall m a. (Fresh m, GenericK a LoT0, GAlphaK (RepK a) LoT0)
+freshenDefK :: forall m a. (Fresh m, GenericAlpha a)
             => AlphaCtx -> a -> m (a, Perm AnyName) 
 freshenDefK ctx = retractFFM . liftM (first (toK @_ @a @LoT0)) . gfreshenK ctx . fromK @_ @a @LoT0
-acompareDefK :: forall a. (GenericK a LoT0, GAlphaK (RepK a) LoT0)
+acompareDefK :: forall a. (GenericAlpha a)
              => AlphaCtx -> a -> a -> Ordering
 acompareDefK c = (gacompareK c) `on` (fromK @_ @a @LoT0)
 
 -- | The "Generic" representation version of 'Alpha'
-class GAlphaK (f :: LoT k -> *) (a :: LoT k) where
-  gaeqK :: AlphaCtx -> f a -> f a -> Bool
+class GAlphaK (f :: LoT k -> *) (a :: LoT k) (b :: LoT k) where
+  gaeqK :: AlphaCtx -> f a -> f b -> Bool
 
-  gfvAnyK :: (Contravariant g, Applicative g)
+  gfvAnyK :: (a ~ b, Contravariant g, Applicative g)
          => AlphaCtx -> (AnyName -> g AnyName) -> f a -> g (f a)
 
-  gcloseK :: AlphaCtx -> NamePatFind -> f a -> f a
-  gopenK :: AlphaCtx -> NthPatFind -> f a -> f a
+  gcloseK :: a ~ b => AlphaCtx -> NamePatFind -> f a -> f a
+  gopenK :: a ~ b => AlphaCtx -> NthPatFind -> f a -> f a
 
-  gisPatK :: f a -> DisjointSet AnyName
-  gisTermK :: f a -> All
+  gisPatK :: a ~ b => f a -> DisjointSet AnyName
+  gisTermK :: a ~ b => f a -> All
 
-  gnthPatFindK :: f a -> NthPatFind
-  gnamePatFindK :: f a -> NamePatFind
+  gnthPatFindK :: a ~ b => f a -> NthPatFind
+  gnamePatFindK :: a ~ b => f a -> NamePatFind
 
-  gswapsK :: AlphaCtx -> Perm AnyName -> f a -> f a
-  gfreshenK :: Fresh m => AlphaCtx -> f a -> FFM m (f a, Perm AnyName)
+  gswapsK :: a ~ b => AlphaCtx -> Perm AnyName -> f a -> f a
+  gfreshenK :: (a ~ b, Fresh m) => AlphaCtx -> f a -> FFM m (f a, Perm AnyName)
 
-  glfreshenK :: LFresh m => AlphaCtx -> f a -> (f a -> Perm AnyName -> m b) -> m b
+  glfreshenK :: (a ~ b, LFresh m) => AlphaCtx -> f a -> (f a -> Perm AnyName -> m c) -> m c
 
-  gacompareK :: AlphaCtx -> f a -> f a -> Ordering
+  gacompareK :: AlphaCtx -> f a -> f b -> Ordering
 
-instance Alpha (Interpret t a) => GAlphaK (Field t) a where
-  gaeqK ctx (Field c1) (Field c2) = aeq' ctx c1 c2
+instance forall t a b.
+         (Alpha (Interpret t a), Alpha (Interpret t b),
+          Typeable (Interpret t a), Typeable (Interpret t b))
+         => GAlphaK (Field t) a b where
+  gaeqK ctx (Field c1) (Field c2) =
+    case eqTypeRep (typeRep @(Interpret t a)) (typeRep @(Interpret t b)) of
+      Nothing    -> False
+      Just HRefl -> aeq' ctx c1 c2
   {-# INLINE gaeqK #-}
 
   gfvAnyK ctx nfn = fmap Field . fvAny' ctx nfn . unField
@@ -139,9 +148,13 @@ instance Alpha (Interpret t a) => GAlphaK (Field t) a where
   glfreshenK ctx (Field c) cont = lfreshen' ctx c (cont . Field)
   {-# INLINE glfreshenK #-}
 
-  gacompareK ctx (Field c1) (Field c2) = acompare' ctx c1 c2
+  gacompareK ctx (Field c1) (Field c2) =
+    case eqTypeRep (typeRep @(Interpret t a)) (typeRep @(Interpret t b)) of
+      Nothing    -> compare (SomeTypeRep (typeRep @(Interpret t a)))
+                            (SomeTypeRep (typeRep @(Interpret t b)))
+      Just HRefl -> acompare' ctx c1 c2
 
-instance GAlphaK f a => GAlphaK (M1 i d f) a where
+instance GAlphaK f a b => GAlphaK (M1 i d f) a b where
   gaeqK ctx (M1 f1) (M1 f2) = gaeqK ctx f1 f2
   {-# INLINE gaeqK #-}
 
@@ -174,7 +187,7 @@ instance GAlphaK f a => GAlphaK (M1 i d f) a where
 
   gacompareK ctx (M1 f1) (M1 f2) = gacompareK ctx f1 f2
 
-instance GAlphaK U1 a where
+instance GAlphaK U1 a b where
   gaeqK _ctx _ _ = True
   {-# INLINE gaeqK #-}
 
@@ -197,7 +210,7 @@ instance GAlphaK U1 a where
 
   gacompareK _ctx _ _ = EQ
 
-instance (GAlphaK f a, GAlphaK g a) => GAlphaK (f :*: g) a where
+instance (GAlphaK f a b, GAlphaK g a b) => GAlphaK (f :*: g) a b where
   gaeqK ctx (f1 :*: g1) (f2 :*: g2) =
     gaeqK ctx f1 f2 && gaeqK ctx g1 g2
   {-# INLINE gaeqK #-}
@@ -240,7 +253,7 @@ instance (GAlphaK f a, GAlphaK g a) => GAlphaK (f :*: g) a where
   gacompareK ctx (f1 :*: g1) (f2 :*: g2) =
     (gacompareK ctx f1 f2) <> (gacompareK ctx g1 g2)
 
-instance (GAlphaK f a, GAlphaK g a) => GAlphaK (f :+: g) a where
+instance (GAlphaK f a b, GAlphaK g a b) => GAlphaK (f :+: g) a b where
   gaeqK ctx  (L1 f1) (L1 f2) = gaeqK ctx f1 f2
   gaeqK ctx  (R1 g1) (R1 g2) = gaeqK ctx g1 g2
   gaeqK _ctx _       _       = False
@@ -293,7 +306,8 @@ instance (GAlphaK f a, GAlphaK g a) => GAlphaK (f :+: g) a where
   gacompareK ctx  (R1 g1) (R1 g2) = gacompareK ctx g1 g2
   {-# INLINE gacompareK #-}
 
-instance (Interpret c a => GAlphaK f a) => GAlphaK (c :=>: f) a where
+instance ((Interpret c a, Interpret c b) => GAlphaK f a b)
+         => GAlphaK (c :=>: f) a b where
   gaeqK ctx (SuchThat f1) (SuchThat f2) = gaeqK ctx f1 f2
   {-# INLINE gaeqK #-}
 
@@ -329,14 +343,10 @@ instance (Interpret c a => GAlphaK f a) => GAlphaK (c :=>: f) a where
   gacompareK ctx (SuchThat f1) (SuchThat f2) = gacompareK ctx f1 f2
   {-# INLINE gacompareK #-}
 
-instance forall k (f :: LoT (k -> r) -> *) (a :: LoT r).
-         (Typeable k, Typeable r, Typeable f, Typeable a,  -- Just to please GHC
-          (forall (t :: k). (Typeable t => GAlphaK f (t :&&: a))))
-         => GAlphaK (Exists k ((Typeable :$: Var0) :=>: f)) a where
-  gaeqK ctx (Exists (SuchThat (f1 :: f (t1 :&&: a)))) (Exists (SuchThat (f2 :: f (t2 :&&: a)))) =
-    case eqTypeRep (typeRep @t1) (typeRep @t2) of
-      Nothing    -> False
-      Just HRefl -> gaeqK ctx f1 f2
+instance (forall (t1 :: k) (t2 :: k). GAlphaK f (t1 :&&: a) (t2 :&&: b))
+         => GAlphaK (Exists k f) a b where
+
+  gaeqK ctx (Exists f1) (Exists f2) = gaeqK ctx f1 f2
   {-# INLINE gaeqK #-}
 
   gfvAnyK ctx nfn (Exists f) = fmap Exists (gfvAnyK ctx nfn f)
@@ -368,11 +378,7 @@ instance forall k (f :: LoT (k -> r) -> *) (a :: LoT r).
   glfreshenK ctx (Exists f) cont = glfreshenK ctx f (cont . Exists)
   {-# INLINE glfreshenK #-}
 
-  gacompareK ctx (Exists (SuchThat (f1 :: f (t1 :&&: a)))) (Exists (SuchThat (f2 :: f (t2 :&&: a)))) = 
-    case eqTypeRep (typeRep @t1) (typeRep @t2) of
-      Nothing    -> compare (SomeTypeRep (typeRep @t1)) (SomeTypeRep (typeRep @t2))
-      Just HRefl -> gacompareK ctx f1 f2
-  {-# INLINE gacompareK #-}
+  gacompareK ctx (Exists f1) (Exists f2) = gacompareK ctx f1 f2
 
 gsubstDefK :: forall a b. (GenericK a LoT0, GSubstK b (RepK a) LoT0, Subst b a)
            => Name b -> b -> a -> a
