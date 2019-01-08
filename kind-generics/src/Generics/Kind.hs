@@ -38,7 +38,7 @@ import Data.PolyKinded.Atom
 import Data.Kind
 import GHC.Generics.Extra hiding ((:=>:), SuchThat)
 import qualified GHC.Generics.Extra as GG
-import GHC.Exts
+-- import GHC.Exts
 
 -- | Fields: used to represent each of the (visible) arguments to a constructor.
 -- Replaces the 'K1' type from "GHC.Generics". The type of the field is

@@ -190,15 +190,15 @@ data Ranky = MkRanky (forall a. a -> a)
 
 instance GenericK Ranky LoT0 where
   type RepK Ranky = Field (ForAll ((->) :$: Var0 :@: Var0))
-  fromK (MkRanky x) = Field (ForAllI x)
-  toK (Field (ForAllI x)) = MkRanky x
+  fromK (MkRanky x) = Field (ForAllI (WrapInterpret x))
+  toK (Field (ForAllI x)) = MkRanky (unwrapInterpret x)
 
 newtype Ranky2 b = MkRanky2 ((forall a. a -> a) -> b)
 
 instance GenericK Ranky2 (b ':&&: LoT0) where
   type RepK Ranky2 = Field ((->) :$: ForAll ((->) :$: Var0 :@: Var0) :@: Var0)
-  fromK (MkRanky2 f) = Field (\(ForAllI x) -> f x)
-  toK (Field f) = MkRanky2 (\x -> f (ForAllI x))
+  fromK (MkRanky2 f) = Field (\(ForAllI x) -> f (unwrapInterpret x))
+  toK (Field f) = MkRanky2 (\x -> f (ForAllI (WrapInterpret x)))
 
 data Shower a where
   MkShower :: (Show a => a -> String) -> Shower a

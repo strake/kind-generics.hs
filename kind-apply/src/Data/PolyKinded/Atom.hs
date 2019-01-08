@@ -7,6 +7,8 @@
 {-# language RankNTypes      #-}
 {-# language AllowAmbiguousTypes  #-}
 {-# language UndecidableInstances #-}
+{-# language ScopedTypeVariables  #-}
+{-# language TypeApplications     #-}
 module Data.PolyKinded.Atom where
 
 import Data.Kind
@@ -52,8 +54,11 @@ type family Interpret (t :: Atom d k) (tys :: LoT d) :: k where
   Interpret (ForAll f)     tys = ForAllI f tys
   Interpret (c ':=>>: f)   tys = SuchThatI c f tys
 
+newtype WrappedInterpret (f :: Atom d (*)) (tys :: LoT d) =
+  WrapInterpret { unwrapInterpret :: Interpret f tys }
+
 newtype ForAllI (f :: Atom (d1 -> d) (*)) (tys :: LoT d) where
-  ForAllI :: (forall t. Interpret f (t ':&&: tys)) -> ForAllI f tys
+  ForAllI :: (forall t. WrappedInterpret f (t ':&&: tys)) -> ForAllI f tys
 
 newtype SuchThatI (c :: Atom d Constraint) (f :: Atom d (*)) (tys :: LoT d) where
   SuchThatI :: (Interpret c tys => Interpret f tys) -> SuchThatI c f tys
