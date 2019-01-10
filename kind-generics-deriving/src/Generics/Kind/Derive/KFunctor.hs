@@ -78,12 +78,11 @@ instance GFunctorArg ('Kon t) v 'Contra as bs where
 instance forall d (f :: Atom (* -> d) *) v (as :: LoT d) (bs :: LoT d).
          (forall (t :: *). GFunctorArg f ('Co ': v) 'Co (t ':&&: as) (t ':&&: bs))
          => GFunctorArg (ForAll f) v 'Co as bs where
-  gfmapf _ _ v (ForAllI x) = ForAllI (go x)
+  gfmapf _ _ v x = fromWrappedI $ go $ toWrappedI x
     where
-      go :: forall (t :: *). WrappedInterpret f (t ':&&: as) -> WrappedInterpret f (t ':&&: bs)
-      go (WrapInterpret x) =
-        WrapInterpret (gfmapf @(* -> d) @f @('Co ': v) @'Co @(t ':&&: as) @(t ':&&: bs)
-                              Proxy Proxy (id :^: v) x)
+      go :: forall (t :: *). WrappedI f (t ':&&: as) -> WrappedI f (t ':&&: bs)
+      go (WrapI x) = WrapI (gfmapf @(* -> d) @f @('Co ': v) @'Co @(t ':&&: as) @(t ':&&: bs)
+                           Proxy Proxy (id :^: v) x)
 
 instance GFunctorArg ('Var 'VZ) (r ': v) r (a ':&&: as) (b ':&&: bs) where
   gfmapf _ _ (f :^: _) = f

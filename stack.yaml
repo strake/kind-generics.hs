@@ -6,4 +6,4 @@ packages:
 - kind-generics-th/
 - unbound-kind-generics/
 extra-deps: []
-resolver: lts-13.1
+resolver: lts-13.2
