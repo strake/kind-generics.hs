@@ -1,0 +1,26 @@
+cabal-version:       >=1.10
+name:                kind-algebras
+version:             0.1.0.0
+synopsis:            Generic algebras for data types.
+description:         This package provides tools to work with algebras of arbitrary data types using `kind-generics`.
+-- bug-reports:
+license:             BSD3
+license-file:        LICENSE
+author:              Alejandro Serrano
+maintainer:          trupill@gmail.com
+-- copyright:
+category:            Data
+build-type:          Simple
+
+source-repository head
+  type:     git
+  location: https://gitlab.com/trupill/kind-generics.git
+
+library
+  exposed-modules:     Generics.Kind.Algebras
+  -- other-modules:
+  -- other-extensions:
+  build-depends:       base >= 4.12 && < 5, kind-apply, kind-generics >= 0.3
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -Wall -fprint-explicit-kinds

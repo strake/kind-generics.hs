@@ -5,5 +5,6 @@ packages:
 - kind-generics-deriving/
 - kind-generics-th/
 - unbound-kind-generics/
+- kind-algebras/
 extra-deps: []
 resolver: lts-13.2
