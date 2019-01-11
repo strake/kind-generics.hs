@@ -46,14 +46,17 @@ type f :$:  x = 'Kon f ':@: x
 type a :~:  b = 'Kon (~) ':@: a ':@: b
 type a :~~: b = 'Kon (~~) ':@: a ':@: b
 
+type family InterpretVar (t :: TyVar d k) (tys :: LoT d) :: k where
+  InterpretVar 'VZ     (t ':&&: ts) = t
+  InterpretVar ('VS v) (t ':&&: ts) = InterpretVar v ts
+
 type family Interpret (t :: Atom d k) (tys :: LoT d) :: k where
-  Interpret ('Var 'VZ)     (t ':&&: ts) = t
-  Interpret ('Var ('VS v)) (t ':&&: ts) = Interpret ('Var v) ts
-  Interpret ('Kon t)       tys = t
-  Interpret (f ':@: x)     tys = (Interpret f tys) (Interpret x tys)
-  Interpret (c ':&: d)     tys = (Interpret c tys, Interpret d tys)
-  Interpret (ForAll f)     tys = ForAllI f tys
-  Interpret (c ':=>>: f)   tys = SuchThatI c f tys
+  Interpret ('Var v)     tys = InterpretVar v tys
+  Interpret ('Kon t)     tys = t
+  Interpret (f ':@: x)   tys = (Interpret f tys) (Interpret x tys)
+  Interpret (c ':&: d)   tys = (Interpret c tys, Interpret d tys)
+  Interpret (ForAll f)   tys = ForAllI f tys
+  Interpret (c ':=>>: f) tys = SuchThatI c f tys
 
 newtype ForAllI (f :: Atom (d1 -> d) (*)) (tys :: LoT d) where
   ForAllI :: (forall t. Interpret f (t ':&&: tys)) -> ForAllI f tys

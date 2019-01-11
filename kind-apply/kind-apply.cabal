@@ -19,6 +19,7 @@ source-repository head
 library
   exposed-modules:     Data.PolyKinded,
                        Data.PolyKinded.Atom,
+                       Data.PolyKinded.Atom.Rec,
                        Data.PolyKinded.Functor,
                        GHC.Generics.Extra
   -- other-modules:
