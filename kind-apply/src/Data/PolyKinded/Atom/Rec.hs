@@ -10,14 +10,30 @@
 {-# language ScopedTypeVariables  #-}
 {-# language TypeApplications     #-}
 {-# language ImpredicativeTypes   #-}
-module Data.PolyKinded.Atom.Rec where
+module Data.PolyKinded.Atom.Rec (
+  TyVar(..), InterpretVar
+, Var0, Var1, Var2, Var3, Var4, Var5, Var6, Var7, Var8, Var9
+, Atom(..), RecLoT, Interpret
+, ForAllI(..), WrappedI(..), toWrappedI, SuchThatI
+) where
 
 import Data.Kind
 import Data.PolyKinded
 import Data.Type.Equality
 import GHC.Exts
 
-import Data.PolyKinded.Atom (TyVar, InterpretVar, Var0, Var1, Var2, Var3, Var4, Var5, Var6, Var7, Var8, Var9)
+import Data.PolyKinded.Atom (TyVar(..), InterpretVar)
+
+type Var0 = 'Var 'VZ
+type Var1 = 'Var ('VS 'VZ)
+type Var2 = 'Var ('VS ('VS 'VZ))
+type Var3 = 'Var ('VS ('VS ('VS 'VZ)))
+type Var4 = 'Var ('VS ('VS ('VS ('VS 'VZ))))
+type Var5 = 'Var ('VS ('VS ('VS ('VS ('VS 'VZ)))))
+type Var6 = 'Var ('VS ('VS ('VS ('VS ('VS ('VS 'VZ))))))
+type Var7 = 'Var ('VS ('VS ('VS ('VS ('VS ('VS ('VS 'VZ)))))))
+type Var8 = 'Var ('VS ('VS ('VS ('VS ('VS ('VS ('VS ('VS 'VZ))))))))
+type Var9 = 'Var ('VS ('VS ('VS ('VS ('VS ('VS ('VS ('VS ('VS 'VZ)))))))))
 
 infixr 5 :&:
 infixr 5 :=>>:
