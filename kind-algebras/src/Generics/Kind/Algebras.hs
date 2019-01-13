@@ -29,23 +29,22 @@ maybeAlg :: Algebra Maybe Bool
 maybeAlg = Alg (Field False :*: (OneArg (\_ -> Field True))) id
 -}
 
-{-
+newtype Const x tys = Const { unConst :: x }
+newtype AlgebraConst (t :: k) (r :: *) = AlgebraConst { unAC :: Algebra t (Const r) }
+
+instance Functor (AlgebraConst t) where
+  fmap f (AlgebraConst (Alg v r)) = AlgebraConst $ Alg v (Const . f . unConst . r)
+
 data Algebra (t :: k) (r :: LoT k -> *) where
   Alg :: (forall tys. Algebra' t x tys) -> (forall tys. x tys -> r tys) -> Algebra t r
-
-instance Functor (Algebra t) where
-  fmap f (Alg v r) = Alg v (f . r)
--}
 
 type Algebra' t r tys = AlgebraDT t r (RepK t) tys
 type FoldK t r tys = (GenericK t tys, FoldDT t r (RepK t) tys)
 
-{-
 foldAlgebra :: forall k (t :: k) r f tys.
                (GenericK t tys, f ~ RepK t, forall p. FoldDT t p f tys)
             => Algebra t r -> t :@@: tys -> r tys
-foldAlgebra (Alg v (r :: x -> r)) x = r (foldG @k @t @x @tys v x)
--}
+foldAlgebra (Alg v (r :: x tys -> r tys)) x = r (foldG @k @t @x @tys v x)
 
 foldG :: forall k (t :: k) r tys. (FoldK t r tys)
       => (forall bop. Algebra' t r bop)
