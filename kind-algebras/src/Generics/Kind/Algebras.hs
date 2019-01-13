@@ -21,16 +21,17 @@ import Generics.Kind
 import Generics.Kind.Examples
 import Data.Proxy
 
-{-
-maybeAlg' :: Algebra' Maybe Bool tys
-maybeAlg' = Field False :*: (OneArg (\_ -> Field True))
-
-maybeAlg :: Algebra Maybe Bool
-maybeAlg = Alg (Field False :*: (OneArg (\_ -> Field True))) id
--}
-
 newtype Const x tys = Const { unConst :: x }
 newtype AlgebraConst (t :: k) (r :: *) = AlgebraConst { unAC :: Algebra t (Const r) }
+
+maybeAlg :: AlgebraConst Maybe Bool
+maybeAlg = AlgebraConst $ Alg (Const False :*: (OneArg (\_ -> Const True))) id
+
+foldAlgebraConst
+  :: forall k (t :: k) r f tys.
+     (GenericK t tys, f ~ RepK t, forall p. FoldDT t p f tys)
+     => AlgebraConst t r -> t :@@: tys -> r
+foldAlgebraConst (AlgebraConst alg) = unConst . foldAlgebra @_ @t @(Const r) @_ @tys alg
 
 instance Functor (AlgebraConst t) where
   fmap f (AlgebraConst (Alg v r)) = AlgebraConst $ Alg v (Const . f . unConst . r)
