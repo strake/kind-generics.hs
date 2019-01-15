@@ -57,6 +57,13 @@ class FoldDT (t :: k) (r :: LoT k -> *) (f :: LoT k -> *) (tys :: LoT k) where
   foldDT :: (forall bop. Algebra' t r bop)
          -> AlgebraDT t r f tys -> f tys -> r tys
 
+class ApplDT (t :: k) (f :: LoT k -> *) (tys :: LoT k) where
+  unitDT :: AlgebraDT t (Const ()) f tys
+  tupleDT :: Proxy a -> Proxy b
+          -> AlgebraDT t (Const a) f tys
+          -> AlgebraDT t (Const b) f tys
+          -> AlgebraDT t (Const (a, b)) f tys
+
 instance forall t r f g tys. 
          ( FoldB t r r f tys, FoldDT t r g tys )
          => FoldDT t r (f :+: g) tys where
@@ -64,10 +71,20 @@ instance forall t r f g tys.
   foldDT recf (fx :*: _) (L1 x) = foldB  @_ @_ @t @r @r @f @tys recf fx x
   foldDT recf (_ :*: fy) (R1 y) = foldDT @_ @t @r @g @tys recf fy y
 
+instance forall t f g tys.
+         ( ApplB t f tys, ApplDT t g tys )
+         => ApplDT t (f :+: g) tys where
+  unitDT = unitB @_ @_ @t @f @tys :*: unitDT @_ @t @g @tys
+  tupleDT pa pb (x :*: y) (a :*: b) = tupleB @_ @_ @t @f @tys pa pb x a :*: tupleDT @_ @t @g @tys pa pb y b 
+
 -- Fallback, copied to remove ovelapping
 instance forall t r tys. FoldDT t r U1 tys where
   type AlgebraDT t r U1 = AlgebraB t r r U1
   foldDT recf x = foldB @_ @_ @t @r @r @U1 @tys recf x
+
+instance forall t tys. ApplDT t U1 tys where
+  unitDT = unitB @_ @_ @t @U1 @tys
+  tupleDT pa pb x a = tupleB @_ @_ @t @U1 @tys pa pb x a
 
 instance forall t r x tys. 
          FoldB t r r (Field x) tys
@@ -75,16 +92,35 @@ instance forall t r x tys.
   type AlgebraDT t r (Field x) = AlgebraB t r r (Field x)
   foldDT recf x = foldB @_ @_ @t @r @r @(Field x) @tys recf x
 
+instance forall t x tys.
+         ApplB t (Field x) tys
+         => ApplDT t (Field x) tys where
+  unitDT = unitB @_ @_ @t @(Field x) @tys
+  tupleDT pa pb x a = tupleB @_ @_ @t @(Field x) @tys pa pb x a
+
 instance forall t r x y tys. 
          FoldB t r r (Field x :*: y) tys
          => FoldDT t r (Field x :*: y) tys where
   type AlgebraDT t r (Field x :*: y) = AlgebraB t r r (Field x :*: y)
   foldDT recf x = foldB @_ @_ @t @r @r @(Field x :*: y) @tys recf x
 
+instance forall t x y tys.
+         ApplB t (Field x :*: y) tys
+         => ApplDT t (Field x :*: y) tys where
+  unitDT = unitB @_ @_ @t @(Field x :*: y) @tys
+  tupleDT pa pb x a = tupleB @_ @_ @t @(Field x :*: y) @tys pa pb x a
+
 class FoldB (t :: l) (r :: LoT l -> *) (newr :: LoT k -> *) (f :: LoT k -> *) (tys :: LoT k) where
   type AlgebraB t r newr f :: LoT k -> *
   foldB :: (forall bop. Algebra' t r bop)
         -> AlgebraB t r newr f tys -> f tys -> newr tys
+
+class ApplB (t :: l) (f :: LoT k -> *) (tys :: LoT k) where
+  unitB :: AlgebraB t (Const ()) (Const ()) f tys
+  tupleB :: Proxy a -> Proxy b
+         -> AlgebraB t (Const a) (Const a) f tys
+         -> AlgebraB t (Const b) (Const b) f tys
+         -> AlgebraB t (Const (a, b)) (Const (a, b)) f tys
 
 newtype (:~>:) (f :: LoT k -> *) (g :: LoT k -> *) (tys :: LoT k) where
   OneArg :: (f tys -> g tys) -> (f :~>: g) tys
@@ -92,6 +128,10 @@ newtype (:~>:) (f :: LoT k -> *) (g :: LoT k -> *) (tys :: LoT k) where
 instance FoldB t r newr U1 tys where
   type AlgebraB t r newr U1 = newr
   foldB _ r U1 = r
+
+instance ApplB t U1 tys where
+  unitB = Const ()
+  tupleB pa pb (Const x) (Const a) = Const (x, a)
 
 instance forall t r newr x y tys. 
          ( FoldF t r x (Igualicos x (ElReemplazador t r x)) tys, FoldB t r newr y tys )
@@ -101,6 +141,23 @@ instance forall t r newr x y tys.
     = foldB @_ @_ @t @r @newr @y recf
             (f (foldF @_ @_ @t @r @x @(Igualicos x (ElReemplazador t r x)) @tys recf v)) w
 
+instance forall t x y tys.
+         ( ApplB t y tys
+         , ApplF t x (Igualicos x (ElReemplazador t (Const ()) x)) tys )
+         => ApplB t (Field x :*: y) tys where
+  unitB = OneArg (\_ -> unitB @_ @_ @t @y @tys)
+  tupleB :: forall a b. Proxy a -> Proxy b
+         -> AlgebraB t (Const a) (Const a) (Field x :*: y) tys
+         -> AlgebraB t (Const b) (Const b) (Field x :*: y) tys
+         -> AlgebraB t (Const (a, b)) (Const (a, b)) (Field x :*: y) tys
+  tupleB pa pb (OneArg x) (OneArg a)
+    = OneArg $ \v ->
+        let (vx, va)
+              = untupleF @_ @_ @t @x 
+                         @(Igualicos x (ElReemplazador t (Const ()) x)) @tys
+                         @a @b v
+        in tupleB @_ @_ @t @y @tys pa pb (x vx) (a va)
+
 instance forall t r newr x tys. 
          ( FoldF t r x (Igualicos x (ElReemplazador t r x)) tys )
          => FoldB t r newr (Field x) tys where
@@ -108,9 +165,29 @@ instance forall t r newr x tys.
   foldB recf (OneArg f) v
     = f (foldF @_ @_ @t @r @x @(Igualicos x (ElReemplazador t r x)) @tys recf v)
 
+instance forall t x tys.
+         ApplF t x (Igualicos x (ElReemplazador t (Const ()) x)) tys
+         => ApplB t (Field x) tys where
+  unitB = OneArg (\_ -> Const ())
+  tupleB :: forall a b. Proxy a -> Proxy b
+         -> AlgebraB t (Const a) (Const a) (Field x) tys
+         -> AlgebraB t (Const b) (Const b) (Field x) tys
+         -> AlgebraB t (Const (a, b)) (Const (a, b)) (Field x) tys
+  tupleB pa pb (OneArg x) (OneArg a)
+    = OneArg $ \v ->
+        let (vx, va)
+              = untupleF @_ @_ @t @x 
+                         @(Igualicos x (ElReemplazador t (Const ()) x)) @tys
+                         @a @b v
+        in Const (unConst $ x vx, unConst $ a va)
+
 class FoldF (t :: l) (r :: LoT l -> *) (x :: Atom k (*)) (igualicos :: Bool) (tys :: LoT k) where
   foldF :: (forall bop. Algebra' t r bop)
         -> Field x tys -> Field (ElReemplazador t r x) tys
+
+class ApplF (t :: l) (x :: Atom k (*)) (igualicos :: Bool) (tys :: LoT k) where
+  untupleF :: Field (ElReemplazador t (Const (a, b)) x) tys
+           -> (Field (ElReemplazador t (Const a) x) tys, Field (ElReemplazador t (Const b) x) tys)
 
 instance (x ~ ElReemplazador t r x) => FoldF t r x 'True tys where
   foldF _ x = x
