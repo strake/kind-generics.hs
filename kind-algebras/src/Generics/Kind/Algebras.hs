@@ -48,6 +48,46 @@ instance forall f t. (f ~ RepK t, forall tys. UnitDT t f tys, forall r s tys. Tu
          $ Alg @t @(fx :*: xx)
                (tupleDT @_ @t @fx @xx @(RepK t) fv xv)
                (\(f :*: x) -> Const (unConst (fr f) $ unConst (xr x)))
+instance (Applicative (AlgebraConst t), Semigroup s)
+         => Semigroup (AlgebraConst t s) where
+  (<>) = liftA2 (<>)
+instance (Applicative (AlgebraConst t), Monoid m)
+         => Monoid (AlgebraConst t m) where
+  mempty = pure mempty
+instance (Applicative (AlgebraConst t), Num n)
+         => Num (AlgebraConst t n) where
+  fromInteger = pure . fromInteger
+  negate = fmap negate
+  abs = fmap abs
+  signum = fmap signum
+  (+) = liftA2 (+)
+  (*) = liftA2 (*)
+  (-) = liftA2 (-)
+instance (Applicative (AlgebraConst t), Fractional b)
+         => Fractional (AlgebraConst t b) where
+  fromRational = pure . fromRational
+  recip = fmap recip
+  (/) = liftA2 (/)
+instance (Applicative (AlgebraConst t), Floating b)
+         => Floating (AlgebraConst t b) where
+  pi = pure pi
+  exp = fmap exp
+  sqrt = fmap sqrt
+  log = fmap log
+  sin = fmap sin
+  tan = fmap tan
+  cos = fmap cos
+  asin = fmap asin
+  atan = fmap atan
+  acos = fmap acos
+  sinh = fmap sinh
+  tanh = fmap tanh
+  cosh = fmap cosh
+  asinh = fmap asinh
+  atanh = fmap atanh
+  acosh = fmap acosh
+  (**) = liftA2 (**)
+  logBase = liftA2 logBase
 
 data Algebra (t :: k) (r :: LoT k -> *) where
   Alg :: (forall tys. Algebra' t x tys) -> (forall tys. x tys -> r tys) -> Algebra t r
@@ -224,16 +264,14 @@ instance ( FoldK t r (LoT2 (Interpret a (LoT2 x y)) (Interpret b (LoT2 x y)))
          => FoldF t r (Kon t :@: a :@: b) 'False (LoT2 x y) where
   foldF recf (Field x) = Field $ foldG @_ @t @r @(LoT2 (Interpret a (LoT2 x y)) (Interpret b (LoT2 x y))) recf x
 
-{-
-instance ApplF t (Kon t) 'False LoT0 where
-  untupleF (Field (Const (a, b))) = (Field (Const a), Field (Const b))
+instance UntupleF t (Kon t) 'False LoT0 where
+  untupleF (Field (a :*: b)) = (Field a, Field b)
 instance ( forall l. a ~ ElReemplazador t (Const l) a )
-         => ApplF t (Kon t :@: a) 'False (LoT1 x) where
-  untupleF (Field (Const (a, b))) = (Field (Const a), Field (Const b))
+         => UntupleF t (Kon t :@: a) 'False (LoT1 x) where
+  untupleF (Field (a :*: b)) = (Field a, Field b)
 instance ( forall l. a ~ ElReemplazador t (Const l) a, forall l. b ~ ElReemplazador t (Const l) b )
-         => ApplF t (Kon t :@: a :@: b) 'False (LoT2 x y) where
-  untupleF (Field (Const (a, b))) = (Field (Const a), Field (Const b))
--}
+         => UntupleF t (Kon t :@: a :@: b) 'False (LoT2 x y) where
+  untupleF (Field (a :*: b)) = (Field a, Field b)
 
 type family ElReemplazador (t :: l) (r :: LoT l -> *) (a :: Atom d k) :: Atom d k where
   ElReemplazador t r (Kon t) = Kon r :@: Kon LoT0
