@@ -14,9 +14,13 @@
 module Data.PolyKinded (
   -- * Lists of types and application
   LoT(..), (:@@:), LoT1, LoT2
+  -- ** Singleton for list of types
+, SLoT(..), SForLoT(..), Proxy(..)
   -- * Splitting types
 , SplitF, Nat(..), TyEnv(..), SplitN
 ) where
+
+import Data.Proxy
 
 infixr 5 :&&:
 -- | @LoT k@ represents a list of types which can be applied
@@ -37,6 +41,17 @@ type LoT2 a b = a ':&&: b ':&&: LoT0
 type family (f :: k) :@@: (tys :: LoT k) :: * where
   f :@@: 'LoT0        = f
   f :@@: (a ':&&: as) = f a :@@: as
+
+data SLoT (l :: LoT k) where
+  SLoT0 :: SLoT LoT0
+  SLoTA :: Proxy t -> SLoT ts -> SLoT (t :&&: ts)
+
+class SForLoT (l :: LoT k) where
+  slot :: SLoT l
+instance SForLoT LoT0 where
+  slot = SLoT0
+instance SForLoT ts => SForLoT (t :&&: ts) where
+  slot = SLoTA Proxy slot
 
 -- | Split a type @t@ until the constructor @f@ is found.
 --
