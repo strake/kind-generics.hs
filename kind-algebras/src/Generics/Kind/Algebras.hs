@@ -30,8 +30,19 @@ newtype AlgebraConst (t :: k) (c :: LoT k -> Constraint) (r :: *)
 class Trivial tys where
 instance Trivial tys where
 
+class ConstraintFirst (c :: p -> Constraint) (tys :: LoT k) where
+instance (c a, tys ~ (a :&&: as)) => ConstraintFirst c tys where
+
+data DataFirst (tys :: LoT k) where
+  DataFirst :: a -> DataFirst (a :&&: as)
+
 maybeAlg :: AlgebraConst Maybe Trivial Bool
-maybeAlg = AlgebraConst $ Alg (Const False :*: (OneArg (\_ -> Const True))) id
+maybeAlg = AlgebraConst $ Alg Proxy (Const False :*: (OneArg (\_ -> Const True))) id
+
+{-
+sumMaybeAlg :: Algebra Maybe (ConstraintFirst Num) DataFirst
+sumMaybeAlg = Alg (DataFirst 0 :*: (OneArg (\(Field n) -> DataFirst n))) id
+-}
 
 foldAlgebraConst
   :: forall k (t :: k) c r f tys.
@@ -39,18 +50,20 @@ foldAlgebraConst
      => AlgebraConst t c r -> t :@@: tys -> r
 foldAlgebraConst (AlgebraConst alg) = unConst . foldAlgebra @_ @t @c @(Const r) @_ @tys alg
 
-{-
-instance Functor (AlgebraConst t c) where
-  fmap f (AlgebraConst (Alg v r)) = AlgebraConst $ Alg v (Const . f . unConst . r)
+instance forall t c. Functor (AlgebraConst t c) where
+  fmap :: forall a b. (a -> b) -> AlgebraConst t c a -> AlgebraConst t c b
+  fmap f (AlgebraConst (Alg (Proxy :: Proxy x) v r))
+    = AlgebraConst $ Alg (Proxy @x) v (Const . f . unConst . r)
 instance forall f t c. (f ~ RepK t, forall tys. UnitDT t f tys, forall r s tys. TupleDT t r s f tys)
          => Applicative (AlgebraConst t c) where
-  pure x = AlgebraConst $ Alg (unitDT @_ @t @(RepK t))
+  pure :: forall a. a -> AlgebraConst t c a
+  pure x = AlgebraConst $ Alg (Proxy @(Const ()))
+                              (unitDT @_ @t @(RepK t))
                               (\(_ :: Const () lys) -> Const x)
   (<*>) :: forall a b. AlgebraConst t c (a -> b) -> AlgebraConst t c a -> AlgebraConst t c b
-  (AlgebraConst (Alg fv (fr :: forall tys. c tys => fx tys -> Const (a -> b) tys)))
-    <*> (AlgebraConst (Alg xv (xr :: forall tys. c tys => xx tys -> Const a tys)))
+  (AlgebraConst (Alg (px :: Proxy fx) fv fr)) <*> (AlgebraConst (Alg (Proxy :: Proxy xx) xv xr))
          = AlgebraConst
-         $ Alg @t @(fx :*: xx)
+         $ Alg (Proxy @(fx :*: xx))
                (tupleDT @_ @t @fx @xx @(RepK t) fv xv)
                (\(f :*: x) -> Const (unConst (fr f) $ unConst (xr x)))
 instance (Applicative (AlgebraConst t c), Semigroup s)
@@ -93,10 +106,10 @@ instance (Applicative (AlgebraConst t c), Floating b)
   acosh = fmap acosh
   (**) = liftA2 (**)
   logBase = liftA2 logBase
--}
 
 data Algebra (t :: k) (c :: LoT k -> Constraint) (r :: LoT k -> *) where
-  Alg :: (forall tys. c tys => Algebra' t x tys)
+  Alg :: Proxy x
+      -> (forall tys. c tys => Algebra' t x tys)
       -> (forall tys. c tys => x tys -> r tys)
       -> Algebra t c r
 
@@ -106,7 +119,7 @@ type FoldK t c r tys = (GenericK t tys, FoldDT t c r (RepK t) tys)
 foldAlgebra :: forall k (t :: k) c r f tys.
                (GenericK t tys, f ~ RepK t, forall p. FoldDT t c p f tys, c tys)
             => Algebra t c r -> t :@@: tys -> r tys
-foldAlgebra (Alg v (r :: x tys -> r tys)) x = r (foldG @k @t @c @x @tys v x)
+foldAlgebra (Alg (Proxy :: Proxy x) v r) x = r (foldG @k @t @c @x @tys v x)
 
 foldG :: forall k (t :: k) c r tys. (FoldK t c r tys, c tys)
       => (forall bop. c bop => Algebra' t r bop)
