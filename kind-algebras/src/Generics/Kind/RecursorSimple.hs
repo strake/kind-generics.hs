@@ -23,13 +23,16 @@ import Data.Proxy
 import Unsafe.Coerce
 import GHC.Base (liftA2, Constraint)
 
-newtype Const x tys = Const { unConst :: x }
-
 data Algebra (t :: k) (r :: *) where
   Alg :: Proxy x
       -> (forall tys. Algebra' t x tys)
       -> (x -> r)
       -> Algebra t r
+
+lengthAlg :: Algebra Maybe Int
+lengthAlg = Alg (Proxy @Int) (Field 0  :*: OneArg (\_ -> Field 1)) id
+
+applyLength = foldAlgebra @_ @Maybe @_ @_ @(Int :&&: LoT0) lengthAlg (Just 2)
 
 {-
 maybeAlg :: AlgebraConst Maybe Trivial Bool
