@@ -17,7 +17,9 @@ source-repository head
   location: https://gitlab.com/trupill/kind-generics.git
 
 library
-  exposed-modules:     Generics.Kind.Algebras
+  exposed-modules:     Generics.Kind.Algebras,
+                       Generics.Kind.Recursor,
+                       Generics.Kind.RecursorSimple
   -- other-modules:
   -- other-extensions:
   build-depends:       base >= 4.12 && < 5, kind-apply, kind-generics >= 0.3
