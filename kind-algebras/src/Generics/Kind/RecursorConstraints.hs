@@ -15,7 +15,7 @@
 {-# language UndecidableInstances  #-}
 {-# language ConstraintKinds       #-}
 {-# language QuantifiedConstraints #-}
-module Generics.Kind.Recursor where
+module Generics.Kind.RecursorConstraints where
 
 import Generics.Kind
 import Generics.Kind.Examples

@@ -15,7 +15,7 @@
 {-# language UndecidableInstances  #-}
 {-# language ConstraintKinds       #-}
 {-# language QuantifiedConstraints #-}
-module Generics.Kind.Algebras where
+module Generics.Kind.Inductor where
 
 import Generics.Kind
 import Generics.Kind.Examples
