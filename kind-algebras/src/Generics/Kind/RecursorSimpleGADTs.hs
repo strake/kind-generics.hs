@@ -34,14 +34,8 @@ lengthAlg = Alg (Proxy @Int) (Field 0  :*: OneArg (\_ -> Field 1)) id
 
 applyLength = foldAlgebra @_ @Maybe @_ @_ @(Int :&&: LoT0) lengthAlg (Just 2)
 
-{-
-maybeAlg :: AlgebraConst Maybe Trivial Bool
-maybeAlg = AlgebraConst $ Alg Proxy (Const False :*: (OneArg (\_ -> Const True))) id
--}
-{-
-sumMaybeAlg :: Algebra Maybe (ConstraintFirst Num) DataFirst
-sumMaybeAlg = Alg (DataFirst 0 :*: (OneArg (\(Field n) -> DataFirst n))) id
--}
+maybeAlg :: Algebra Maybe Bool
+maybeAlg = Alg (Proxy @Bool) (Field False :*: OneArg (\_ -> Field True)) id
 
 type Algebra' t r tys = AlgebraDT t r (RepK t) tys
 type FoldK t r tys = (GenericK t tys, FoldDT t r (RepK t) tys)
