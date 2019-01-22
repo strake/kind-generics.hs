@@ -34,7 +34,7 @@ data ConstraintsFor (t :: k) where
 
 type family TysSatisfy (c :: ConstraintsFor k) (tys :: LoT k) :: Constraint where
   TysSatisfy Trivial lot = ()
-  TysSatisfy (c :&&&: cs) (t :&&: ts) = (c t, TysSatisfy cs ts) 
+  TysSatisfy (c :&&&: cs) (t :&&: ts) = (c t, TysSatisfy cs ts)
 
 data DataFirst (tys :: LoT k) where
   DataFirst :: { unDataFirst :: a } -> DataFirst (a :&&: as)
@@ -92,6 +92,16 @@ foldAlgebraFirst0
      ( GenericK t (a :&&: LoT0), f ~ RepK t, forall p. FoldDT t (c :&&&: Trivial) p f (a :&&: LoT0), c a )
      => Algebra t (c :&&&: Trivial) DataFirst -> t a -> a
 foldAlgebraFirst0 alg = unDataFirst . foldAlgebra @_ @t @(c :&&&: Trivial) @DataFirst @_ @(a :&&: LoT0) alg
+
+-- you would like to have
+-- fmapG :: (forall tys. TySatisfy c tys => f tys -> g tys) -> Algebra t c f -> Algebra t c g
+-- tupleG :: Algebra t c f -> Algebra t d f -> Algebra t (Combine c d) (f :*: g)
+-- 
+
+coolFmap :: (forall tys. TysSatisfy c tys => f tys -> g tys) -> Algebra t c f -> Algebra t c g
+coolFmap f (Alg (Proxy :: Proxy x) v r) = Alg (Proxy @x) v (f . r)
+
+
 
 instance forall t c. Functor (AlgebraConst t c) where
   fmap :: forall a b. (a -> b) -> AlgebraConst t c a -> AlgebraConst t c b
