@@ -38,7 +38,7 @@ instance (GEq2 f xs ys, GEq2 g xs ys) => GEq2 (f :+: g) xs ys where
 instance (GEq2 f xs ys, GEq2 g xs ys) => GEq2 (f :*: g) xs ys where
   geq2 (x1 :*: x2) (y1 :*: y2) = geq2 x1 y1 && geq2 x2 y2
 
-instance (xs ~ ys, Eq (Interpret t xs)) => GEq2 (Field t) xs ys where
+instance (Interpret t xs ~ Interpret t ys, Eq (Interpret t xs)) => GEq2 (Field t) xs ys where
   geq2 (Field x) (Field y) = x == y
 
 instance ((Interpret c xs, Interpret c ys) => GEq2 f xs ys)
