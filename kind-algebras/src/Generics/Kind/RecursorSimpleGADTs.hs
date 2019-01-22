@@ -37,6 +37,23 @@ applyLength = foldAlgebra @_ @Maybe @_ @_ @(Int :&&: LoT0) lengthAlg (Just 2)
 maybeAlg :: Algebra Maybe Bool
 maybeAlg = Alg (Proxy @Bool) (Field False :*: OneArg (\_ -> Field True)) id
 
+data Vec (n :: Nat) a where
+  VNil   ::                   Vec Z     a
+  VCons  ::  a -> Vec n a ->  Vec (S n) a
+
+instance GenericK Vec (n :&&: a :&&: LoT0) where
+  type RepK Vec  =    (Var VZ :~: Kon Z) :=>: U1
+               :+:  Exists Nat (  (Var (VS VZ) :~: (Kon S :@: Var VZ))
+                                  :=>:  (    Field (Var (VS (VS VZ)))
+                                        :*:  Field (Kon Vec :@: Var VZ :@: Var (VS (VS VZ)))))
+  fromK VNil = L1 (SuchThat U1)
+  fromK (VCons x xs) = R1 (Exists (SuchThat (Field x :*: Field xs)))
+  toK (L1 (SuchThat U1)) = VNil
+  toK (R1 (Exists (SuchThat (Field x :*: Field xs)))) = VCons x xs
+
+lengthAlgVec :: Algebra Vec Int
+lengthAlgVec = Alg (Proxy @Int) (SuchThat (Field 1) :*: _) id
+
 type Algebra' t r tys = AlgebraDT t r (RepK t) tys
 type FoldK t r tys = (GenericK t tys, FoldDT t r (RepK t) tys)
 
