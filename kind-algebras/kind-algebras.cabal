@@ -19,7 +19,8 @@ source-repository head
 library
   exposed-modules:     Generics.Kind.Algebras,
                        Generics.Kind.Recursor,
-                       Generics.Kind.RecursorSimple
+                       Generics.Kind.RecursorSimple,
+                       Generics.Kind.RecursorSimpleGADTs
   -- other-modules:
   -- other-extensions:
   build-depends:       base >= 4.12 && < 5, kind-apply, kind-generics >= 0.3
