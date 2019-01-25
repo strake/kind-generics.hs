@@ -29,9 +29,12 @@ data ConstraintsFor (t :: k) where
   NoMore :: ConstraintsFor (*)
   (:&&&:) :: (k -> Constraint) -> ConstraintsFor ks -> ConstraintsFor (k -> ks)
 
-class ConstraintTys (cs :: ConstraintsFor k) (tys :: LoT k) where
-instance ConstraintTys NoMore LoT0 where
-instance (c ty, ConstraintTys cs tys) => ConstraintTys (c :&&&: cs) (ty :&&: tys) where
+class Satisfies' cs tys => Zas (cs :: ConstraintsFor k) (tys :: LoT k) where
+instance Satisfies' cs tys => Zas cs tys where
+
+type family Satisfies' (cs ::ConstraintsFor k) (tys :: LoT k) :: Constraint where
+  Satisfies' NoMore LoT0 = ()
+  Satisfies' (c :&&&: cs) (ty :&&: tys) = (c ty, Satisfies' cs tys)
 
 class Trivial (a :: k) where
 instance Trivial a where
@@ -41,6 +44,9 @@ data Algebra (t :: k) (c :: LoT k -> Constraint) (r :: *) where
       -> (forall tys. c tys => Algebra' t x tys)
       -> (x -> r)
       -> Algebra t c r
+
+upgrade :: (forall tys. d tys => c tys) => Algebra t c r -> Algebra t d r
+upgrade (Alg px alg r) = Alg px alg r
 
 class (c x, d x) => Both c d x where
 instance (c x, d x) => Both c d x where
@@ -65,8 +71,8 @@ algebra2 p alg r = Alg p algebra2' r
     algebra2' = case slot @_ @tys of
                   SLoTA _ (SLoTA _ SLoT0) -> alg
 
-lengthAlg :: Algebra Maybe Trivial Int
-lengthAlg = Alg (Proxy @Int) (Field 0  :*: OneArg (\_ -> Field 1)) id
+lengthAlg :: forall a. Num a => Algebra Maybe Trivial a
+lengthAlg = Alg (Proxy @a) (Field 0  :*: OneArg (\_ -> Field 1)) id
 
 applyLength = foldAlgebra @_ @Maybe @_ @_ @_ @(Int :&&: LoT0) lengthAlg (Just 2)
 
@@ -76,10 +82,13 @@ maybeAlg = Alg (Proxy @Bool) (Field False :*: OneArg (\_ -> Field True)) id
 notMaybeAlg :: Algebra Maybe Trivial Bool
 notMaybeAlg = not <$> maybeAlg
 
-sumAlg :: forall a. Num a => Algebra Maybe (Both SForLoT (ConstraintTys ((~) a :&&&: NoMore))) a
+sumAlg :: forall a. Num a => Algebra Maybe (Both SForLoT (Zas (((~) a) :&&&: NoMore))) a
 sumAlg = algebra1 (Proxy @a) sumAlg' id
   where sumAlg' :: Algebra' Maybe a (a :&&: LoT0)
         sumAlg' = Field 0 :*: OneArg (\(Field n) -> Field n)
+
+avgAlg :: forall a. Fractional a => Algebra Maybe (Both SForLoT (Zas (((~) a) :&&&: NoMore))) a
+avgAlg = (/) <$> sumAlg <*> upgrade lengthAlg
 
 data Vec (n :: Nat) a where
   VNil   ::                   Vec Z     a
@@ -101,18 +110,13 @@ lengthAlgVec = Alg (Proxy @Int) (IfImpliesK (Field 1) :*: ForAllK (IfImpliesK (O
 twiceLengthAlgVec :: Algebra Vec Trivial Int
 twiceLengthAlgVec = (+) <$> lengthAlgVec <*> lengthAlgVec
 
-{-
-sumAlgVec :: forall a. Num a => Algebra Vec (Trivial :&&&: ((~) a) :&&&: NoMore) a
-sumAlgVec = Alg (Proxy @a) sumAlg' id
-  where sumAlg' :: forall tys. (TysSatisfy (Trivial :&&&: ((~) a) :&&&: NoMore) tys, SForLoT tys)
-                => Algebra' Vec a tys
-        sumAlg' = case slot @_ @tys of
-                    SLoTA _ (SLoTA _ SLoT0)
-                      -> (IfImpliesK $ Field 0)
-                         :*: (ForAllK $ IfImpliesK $
-                              OneArg $ \(Field x) ->
-                              OneArg $ \(Field n) -> Field (x + n))
--}
+sumAlgVec :: forall a. Num a => Algebra Vec (Both SForLoT (Zas (Trivial :&&&: ((~) a) :&&&: NoMore))) a
+sumAlgVec = algebra2 (Proxy @a) sumAlg' id
+  where sumAlg' :: forall n. Algebra' Vec a (n :&&: a :&&: LoT0)
+        sumAlg' = (IfImpliesK $ Field 0)
+                  :*: (ForAllK $ IfImpliesK $
+                       OneArg $ \(Field x) ->
+                       OneArg $ \(Field n) -> Field (x + n))
 
 type Algebra' t r tys = AlgebraDT t r (RepK t) tys
 type FoldK t c r tys = (GenericK t tys, FoldDT t c r (RepK t) tys)
