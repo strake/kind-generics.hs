@@ -37,6 +37,9 @@ applyLength = foldAlgebra @_ @Maybe @_ @_ @(Int :&&: LoT0) lengthAlg (Just 2)
 maybeAlg :: Algebra Maybe Bool
 maybeAlg = Alg (Proxy @Bool) (Field False :*: OneArg (\_ -> Field True)) id
 
+notMaybeAlg :: Algebra Maybe Bool
+notMaybeAlg = not <$> maybeAlg
+
 data Vec (n :: Nat) a where
   VNil   ::                   Vec Z     a
   VCons  ::  a -> Vec n a ->  Vec (S n) a
@@ -52,7 +55,10 @@ instance GenericK Vec (n :&&: a :&&: LoT0) where
   toK (R1 (Exists (SuchThat (Field x :*: Field xs)))) = VCons x xs
 
 lengthAlgVec :: Algebra Vec Int
-lengthAlgVec = Alg (Proxy @Int) (SuchThat (Field 1) :*: _) id
+lengthAlgVec = Alg (Proxy @Int) (IfImpliesK (Field 1) :*: ForAllK (IfImpliesK (OneArg (\_ -> OneArg (\(Field n) -> Field(n+1)))))) id
+
+twiceLengthAlgVec :: Algebra Vec Int
+twiceLengthAlgVec = (+) <$> lengthAlgVec <*> lengthAlgVec
 
 type Algebra' t r tys = AlgebraDT t r (RepK t) tys
 type FoldK t r tys = (GenericK t tys, FoldDT t r (RepK t) tys)
@@ -123,6 +129,17 @@ instance TupleB t r s (Field x :*: y) tys
          => TupleDT t r s (Field x :*: y) tys where
   tupleDT = tupleB @_ @_ @t @r @s @(Field x :*: y)
 
+instance FoldB t r (c :=>: f) tys
+         => FoldDT t r (c :=>: f) tys where
+  type AlgebraDT t r (c :=>: f) = AlgebraB t r (c :=>: f)
+  foldDT recf x = foldB @_ @_ @t recf x
+instance UnitB t (c :=>: f) tys
+         => UnitDT t (c :=>: f) tys where
+  unitDT = unitB @_ @_ @t @(c :=>: f)
+instance TupleB t r s (c :=>: f) tys
+         => TupleDT t r s (c :=>: f) tys where
+  tupleDT = tupleB @_ @_ @t @r @s @(c :=>: f)
+
 instance FoldB t r (Exists k f) tys
          => FoldDT t r (Exists k f) tys where
   type AlgebraDT t r (Exists k f) = AlgebraB t r (Exists k f)
@@ -155,6 +172,9 @@ newtype (:~>:) (f :: LoT k -> *) (g :: LoT k -> *) (tys :: LoT k) where
 
 newtype ForAllK d (f :: LoT (d -> k) -> *) (tys :: LoT k) where
   ForAllK :: (forall (ty :: d). f (ty :&&: tys)) -> ForAllK d f tys
+
+newtype IfImpliesK (c :: Atom k Constraint) (f :: LoT k -> *) (tys :: LoT k) where
+  IfImpliesK :: (Interpret c tys => f tys) -> IfImpliesK c f tys
 
 instance FoldB t r U1 tys where
   type AlgebraB t r U1 = Field (Kon r)
@@ -214,18 +234,18 @@ instance ( forall ty. TupleB t r s f (ty :&&: tys) )
   tupleB (ForAllK x) (ForAllK a)
     = ForAllK $ tupleB @_ @_ @t @r @s @f x a
 
-instance ( Interpret c tys =>  FoldB t r f tys )
+instance ( Interpret c tys => FoldB t r f tys )
          => FoldB t r (c :=>: f) tys where
-  type AlgebraB t r (c :=>: f) = c :=>: AlgebraB t r f
-  foldB recf (SuchThat f) (SuchThat v)
+  type AlgebraB t r (c :=>: f) = IfImpliesK c (AlgebraB t r f)
+  foldB recf (IfImpliesK f) (SuchThat v)
     = foldB @_ @_ @t recf f v
-instance ( Interpret c tys, UnitB t f tys )
+instance ( Interpret c tys => UnitB t f tys )
          => UnitB t (c :=>: f) tys where
-  unitB = SuchThat (unitB @_ @_ @t @f)
-instance ( Interpret c tys, TupleB t r s f tys )
+  unitB = IfImpliesK (unitB @_ @_ @t @f)
+instance ( Interpret c tys => TupleB t r s f tys )
          => TupleB t r s (c :=>: f) tys where
-  tupleB (SuchThat x) (SuchThat a)
-    = SuchThat $ tupleB @_ @_ @t @r @s @f x a
+  tupleB (IfImpliesK x) (IfImpliesK a)
+    = IfImpliesK $ tupleB @_ @_ @t @r @s @f x a
 
 class FoldF (t :: k) (r :: *) (x :: Atom l (*))
             (igualicos :: Bool) (tys :: LoT l) where
@@ -254,13 +274,11 @@ instance ( FoldK t r (LoT2 (Interpret a (LoT2 x y)) (Interpret b (LoT2 x y)))
          => FoldF t r (Kon t :@: a :@: b) 'False (LoT2 x y) where
   foldF recf (Field x) = Field $ foldG @_ @t @r @(LoT2 (Interpret a (LoT2 x y)) (Interpret b (LoT2 x y))) recf x
 
-instance UntupleF t (Kon t) 'False LoT0 where
+instance UntupleF t (Kon t) 'False tys where
   untupleF (Field (a, b)) = (Field a, Field b)
-instance ( forall l. a ~ ElReemplazador t l a )
-         => UntupleF t (Kon t :@: a) 'False (LoT1 x) where
+instance UntupleF t (Kon t :@: a) 'False tys where
   untupleF (Field (a, b)) = (Field a, Field b)
-instance ( forall l. a ~ ElReemplazador t l a, forall l. b ~ ElReemplazador t l b )
-         => UntupleF t (Kon t :@: a :@: b) 'False (LoT2 x y) where
+instance UntupleF t (Kon t :@: a :@: b) 'False tys where
   untupleF (Field (a, b)) = (Field a, Field b)
 
 type family ElReemplazador (t :: l) (r :: *) (a :: Atom d k) :: Atom d k where
@@ -277,3 +295,53 @@ type family ElReemplazador (t :: l) (r :: *) (a :: Atom d k) :: Atom d k where
 type family Igualicos (a :: k) (b :: k) :: Bool where
   Igualicos a a = 'True
   Igualicos a b = 'False
+
+instance Functor (Algebra t) where
+  fmap f (Alg (Proxy :: Proxy x) v r) = Alg (Proxy @x) v (f . r)
+instance (f ~ RepK t, forall tys. UnitDT t f tys, forall r s tys. TupleDT t r s f tys)
+         => Applicative (Algebra t) where
+  pure x = Alg (Proxy @()) (unitDT @_ @t @(RepK t)) (\_ -> x)
+  (Alg (px :: Proxy fx) fv fr) <*> (Alg (Proxy :: Proxy xx) xv xr)
+         = Alg (Proxy @(fx, xx))
+               (tupleDT @_ @t @fx @xx @(RepK t) fv xv)
+               (\(f, x) -> fr f (xr x))
+instance (Applicative (Algebra t), Semigroup s)
+         => Semigroup (Algebra t s) where
+  (<>) = liftA2 (<>)
+instance (Applicative (Algebra t), Monoid m)
+         => Monoid (Algebra t m) where
+  mempty = pure mempty
+instance (Applicative (Algebra t), Num n)
+         => Num (Algebra t n) where
+  fromInteger = pure . fromInteger
+  negate = fmap negate
+  abs = fmap abs
+  signum = fmap signum
+  (+) = liftA2 (+)
+  (*) = liftA2 (*)
+  (-) = liftA2 (-)
+instance (Applicative (Algebra t), Fractional b)
+         => Fractional (Algebra t b) where
+  fromRational = pure . fromRational
+  recip = fmap recip
+  (/) = liftA2 (/)
+instance (Applicative (Algebra t), Floating b)
+         => Floating (Algebra t b) where
+  pi = pure pi
+  exp = fmap exp
+  sqrt = fmap sqrt
+  log = fmap log
+  sin = fmap sin
+  tan = fmap tan
+  cos = fmap cos
+  asin = fmap asin
+  atan = fmap atan
+  acos = fmap acos
+  sinh = fmap sinh
+  tanh = fmap tanh
+  cosh = fmap cosh
+  asinh = fmap asinh
+  atanh = fmap atanh
+  acosh = fmap acosh
+  (**) = liftA2 (**)
+  logBase = liftA2 logBase

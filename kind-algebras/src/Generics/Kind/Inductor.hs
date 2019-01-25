@@ -101,7 +101,7 @@ foldAlgebraFirst0 alg = unDataFirst . foldAlgebra @_ @t @(c :&&&: Trivial) @Data
 coolFmap :: (forall tys. TysSatisfy c tys => f tys -> g tys) -> Algebra t c f -> Algebra t c g
 coolFmap f (Alg (Proxy :: Proxy x) v r) = Alg (Proxy @x) v (f . r)
 
-instance forall Functor (AlgebraConst t c) where
+instance Functor (AlgebraConst t c) where
   fmap :: forall a b. (a -> b) -> AlgebraConst t c a -> AlgebraConst t c b
   fmap f (AlgebraConst (Alg (Proxy :: Proxy x) v r))
     = AlgebraConst $ Alg (Proxy @x) v (Const . f . unConst . r)
