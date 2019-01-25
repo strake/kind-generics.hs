@@ -22,6 +22,8 @@ import Generics.Kind.Examples
 import Data.Proxy
 import Unsafe.Coerce
 import GHC.Base (liftA2, Constraint)
+import qualified Control.Category as Cat
+import qualified Control.Arrow as Arrow
 
 data Algebra (t :: k) (r :: *) where
   Alg :: Proxy x
@@ -345,3 +347,17 @@ instance (Applicative (Algebra t), Floating b)
   acosh = fmap acosh
   (**) = liftA2 (**)
   logBase = liftA2 logBase
+
+newtype AlgebraArr (t :: k) (a :: *) (b :: *) where
+  AlgebraArr :: Algebra t (a -> b) -> AlgebraArr t a b
+
+instance Applicative (Algebra t) => Cat.Category (AlgebraArr t) where
+  (AlgebraArr f) . (AlgebraArr g) = AlgebraArr (liftA2 (.) f g)
+  id = AlgebraArr $ pure id
+
+instance Applicative (Algebra t) => Arrow.Arrow (AlgebraArr t) where
+  arr f = AlgebraArr $ pure f
+  first (AlgebraArr alg) = AlgebraArr $ Arrow.first <$> alg
+  second (AlgebraArr alg) = AlgebraArr $ Arrow.second <$> alg
+  AlgebraArr f *** AlgebraArr g = AlgebraArr $ (Arrow.***) <$> f <*> g
+  AlgebraArr f &&& AlgebraArr g = AlgebraArr $ (Arrow.&&&) <$> f <*> g
