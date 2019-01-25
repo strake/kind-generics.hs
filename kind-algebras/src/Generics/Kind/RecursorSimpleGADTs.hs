@@ -261,7 +261,7 @@ instance ( forall l. x ~ ElReemplazador t l x )
          => UntupleF t x 'True tys where
   untupleF x = (unsafeCoerce x, unsafeCoerce x)
 
-instance ( FoldK t r LoT0, c LoT0 )
+instance ( FoldK t r LoT0 )
          => FoldF t r (Kon t) 'False LoT0 where
   foldF recf (Field x) = Field $ foldG @_ @t @r @LoT0 recf x
 -- For now we do not allow weird recursion
