@@ -194,14 +194,14 @@ instance ( UnitB t y tys )
          => UnitB t (Field x :*: y) tys where
   unitB = OneArg (\_ -> unitB @_ @_ @t @y)
 instance ( TupleB t r s y tys
-         , UntupleF t x (Igualicos x (ElReemplazador t () x)) tys )
+         , UntupleF t x r s (Igualicos x (ElReemplazador t () x)) tys )
          => TupleB t r s (Field x :*: y) tys where
   tupleB (OneArg x) (OneArg a)
     = OneArg $ \v ->
         let (vx, va)
-              = untupleF @_ @_ @t @x 
+              = untupleF @_ @_ @t @x @r @s 
                          @(Igualicos x (ElReemplazador t () x)) @tys
-                         @r @s v
+                         v
         in tupleB @_ @_ @t @r @s @y (x vx) (a va)
 
 instance ( FoldF t r x (Igualicos x (ElReemplazador t r x)) tys )
@@ -211,14 +211,14 @@ instance ( FoldF t r x (Igualicos x (ElReemplazador t r x)) tys )
     = unField $ f (foldF @_ @_ @t @r @x @(Igualicos x (ElReemplazador t r x)) recf v)
 instance UnitB t (Field x) tys where
   unitB = OneArg (\_ -> Field ())
-instance UntupleF t x (Igualicos x (ElReemplazador t () x)) tys
+instance UntupleF t x r s (Igualicos x (ElReemplazador t () x)) tys
          => TupleB t r s (Field x) tys where
   tupleB (OneArg x) (OneArg a)
     = OneArg $ \v ->
         let (vx, va)
-              = untupleF @_ @_ @t @x 
+              = untupleF @_ @_ @t @x @r @s
                          @(Igualicos x (ElReemplazador t () x)) @tys
-                         @r @s v
+                         v
         in Field (unField $ x vx, unField $ a va)
 
 instance ( forall ty. FoldB t r f (ty :&&: tys) )
@@ -251,15 +251,15 @@ class FoldF (t :: k) (r :: *) (x :: Atom l (*))
             (igualicos :: Bool) (tys :: LoT l) where
   foldF :: (forall bop. Algebra' t r bop)
         -> Field x tys -> Field (ElReemplazador t r x) tys
-class UntupleF (t :: k) (x :: Atom l (*)) (igualicos :: Bool) (tys :: LoT l) where
+class UntupleF (t :: k) (x :: Atom l (*)) (r :: *) (s :: *) (igualicos :: Bool) (tys :: LoT l) where
   untupleF :: Field (ElReemplazador t (r, s) x) tys
            -> (Field (ElReemplazador t r x) tys, Field (ElReemplazador t s x) tys)
 
 instance (x ~ ElReemplazador t r x) => FoldF t r x 'True tys where
   foldF _ x = x
-instance ( forall l. x ~ ElReemplazador t l x )
-         => UntupleF t x 'True tys where
-  untupleF x = (unsafeCoerce x, unsafeCoerce x)
+instance ( ElReemplazador t r x ~ ElReemplazador t (r,s) x, ElReemplazador t s x ~ ElReemplazador t (r,s) x )
+         => UntupleF t x r s 'True tys where
+  untupleF x = (x, x)
 
 instance ( FoldK t r LoT0 )
          => FoldF t r (Kon t) 'False LoT0 where
@@ -274,11 +274,11 @@ instance ( FoldK t r (LoT2 (Interpret a (LoT2 x y)) (Interpret b (LoT2 x y)))
          => FoldF t r (Kon t :@: a :@: b) 'False (LoT2 x y) where
   foldF recf (Field x) = Field $ foldG @_ @t @r @(LoT2 (Interpret a (LoT2 x y)) (Interpret b (LoT2 x y))) recf x
 
-instance UntupleF t (Kon t) 'False tys where
+instance UntupleF t (Kon t) r s 'False tys where
   untupleF (Field (a, b)) = (Field a, Field b)
-instance UntupleF t (Kon t :@: a) 'False tys where
+instance UntupleF t (Kon t :@: a) r s 'False tys where
   untupleF (Field (a, b)) = (Field a, Field b)
-instance UntupleF t (Kon t :@: a :@: b) 'False tys where
+instance UntupleF t (Kon t :@: a :@: b) r s 'False tys where
   untupleF (Field (a, b)) = (Field a, Field b)
 
 type family ElReemplazador (t :: l) (r :: *) (a :: Atom d k) :: Atom d k where
