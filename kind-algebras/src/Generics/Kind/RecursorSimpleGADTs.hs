@@ -62,7 +62,7 @@ lengthAlgVec = Alg (Proxy @Int) (IfImpliesK (Field 1) :*: ForAllK (IfImpliesK (O
 twiceLengthAlgVec :: Algebra Vec Int
 twiceLengthAlgVec = (+) <$> lengthAlgVec <*> lengthAlgVec
 
-type Algebra' t r tys = AlgebraB t r (RepK t) tys
+type Algebra' t r = AlgebraB t r (RepK t)
 type FoldK t r tys = (GenericK t tys, FoldB t r (RepK t) tys)
 
 foldAlgebra :: forall k (t :: k) r f tys.
