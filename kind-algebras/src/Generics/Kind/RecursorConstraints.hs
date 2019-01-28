@@ -118,96 +118,18 @@ sumAlgVec = algebra2 (Proxy @a) sumAlg' id
                        OneArg $ \(Field x) ->
                        OneArg $ \(Field n) -> Field (x + n))
 
-type Algebra' t r tys = AlgebraDT t r (RepK t) tys
-type FoldK t c r tys = (GenericK t tys, FoldDT t c r (RepK t) tys)
+type Algebra' t r tys = AlgebraB t r (RepK t) tys
+type FoldK t c r tys = (GenericK t tys, FoldB t c r (RepK t) tys)
 
 foldAlgebra :: forall k (t :: k) c r f tys.
-               (GenericK t tys, f ~ RepK t, forall p. FoldDT t c p f tys, c tys)
+               (GenericK t tys, f ~ RepK t, forall p. FoldB t c p f tys, c tys)
             => Algebra t c r -> t :@@: tys -> r
 foldAlgebra (Alg (Proxy :: Proxy x) v r) x = r (foldG @k @t @c @x @tys v x)
 
 foldG :: forall k (t :: k) c r tys. (FoldK t c r tys, c tys)
       => (forall bop. c bop => Algebra' t r bop)
       -> t :@@: tys -> r
-foldG alg x = foldDT @_ @t @c @r @(RepK t) @tys alg alg (fromK @k @t x)
-
-class FoldDT (t :: k) (c :: LoT k -> Constraint) (r :: *) (f :: LoT k -> *) (tys :: LoT k) where
-  type AlgebraDT t r f :: LoT k -> *
-  foldDT :: (forall bop. c bop => Algebra' t r bop)
-         -> AlgebraDT t r f tys -> f tys -> r
-class UnitDT (t :: k) (f :: LoT k -> *) (tys :: LoT k) where
-  unitDT :: AlgebraDT t () f tys
-class UnitDT t f tys
-      => TupleDT (t :: k) (r :: *) (s :: *) (f :: LoT k -> *) (tys :: LoT k) where
-  tupleDT :: AlgebraDT t r f tys
-          -> AlgebraDT t s f tys
-          -> AlgebraDT t (r, s) f tys
-
-instance ( FoldB t c r f tys, FoldDT t c r g tys )
-         => FoldDT t c r (f :+: g) tys where
-  type AlgebraDT t r (f :+: g) = AlgebraB t r f :*: AlgebraDT t r g
-  foldDT recf (fx :*: _) (L1 x) = foldB  @_ @_ @t @c recf fx x
-  foldDT recf (_ :*: fy) (R1 y) = foldDT @_ @t @c recf fy y
-instance ( UnitB t f tys, UnitDT t g tys )
-         => UnitDT t (f :+: g) tys where
-  unitDT = unitB @_ @_ @t @f :*: unitDT @_ @t @g
-instance ( TupleB t r s f tys, TupleDT t r s g tys )
-         => TupleDT t r s (f :+: g) tys where
-  tupleDT (x :*: y) (a :*: b)
-    = tupleB @_ @_ @t @r @s @f x a :*: tupleDT @_ @t @r @s @g y b 
-
--- Fallback, copied to remove ovelapping
-instance FoldDT t c r U1 tys where
-  type AlgebraDT t r U1 = AlgebraB t r U1
-  foldDT recf x = foldB @_ @_ @t @c recf x
-instance UnitDT t U1 tys where
-  unitDT = unitB @_ @_ @t @U1 @tys
-instance TupleDT t r s U1 tys where
-  tupleDT = tupleB @_ @_ @t @r @s @U1
-
-instance FoldB t c r (Field x) tys
-         => FoldDT t c r (Field x) tys where
-  type AlgebraDT t r (Field x) = AlgebraB t r (Field x)
-  foldDT recf x = foldB @_ @_ @t @c recf x
-instance UnitB t (Field x) tys
-         => UnitDT t (Field x) tys where
-  unitDT = unitB @_ @_ @t @(Field x)
-instance TupleB t r s (Field x) tys
-         => TupleDT t r s(Field x) tys where
-  tupleDT = tupleB @_ @_ @t @r @s @(Field x)
-
-instance FoldB t c r (Field x :*: y) tys
-         => FoldDT t c r (Field x :*: y) tys where
-  type AlgebraDT t r (Field x :*: y) = AlgebraB t r (Field x :*: y)
-  foldDT recf x = foldB @_ @_ @t @c recf x
-instance UnitB t (Field x :*: y) tys
-         => UnitDT t (Field x :*: y) tys where
-  unitDT = unitB @_ @_ @t @(Field x :*: y)
-instance TupleB t r s (Field x :*: y) tys
-         => TupleDT t r s (Field x :*: y) tys where
-  tupleDT = tupleB @_ @_ @t @r @s @(Field x :*: y)
-
-instance FoldB t c r (d :=>: f) tys
-         => FoldDT t c r (d :=>: f) tys where
-  type AlgebraDT t r (d :=>: f) = AlgebraB t r (d :=>: f)
-  foldDT recf x = foldB @_ @_ @t @c recf x
-instance UnitB t (c :=>: f) tys
-         => UnitDT t (c :=>: f) tys where
-  unitDT = unitB @_ @_ @t @(c :=>: f)
-instance TupleB t r s (c :=>: f) tys
-         => TupleDT t r s (c :=>: f) tys where
-  tupleDT = tupleB @_ @_ @t @r @s @(c :=>: f)
-
-instance FoldB t c r (Exists k f) tys
-         => FoldDT t c r (Exists k f) tys where
-  type AlgebraDT t r (Exists k f) = AlgebraB t r (Exists k f)
-  foldDT recf x = foldB @_ @_ @t @c recf x
-instance UnitB t (Exists k f) tys
-         => UnitDT t (Exists k f) tys where
-  unitDT = unitB @_ @_ @t @(Exists k f)
-instance TupleB t r s (Exists k f) tys
-         => TupleDT t r s (Exists k f) tys where
-  tupleDT = tupleB @_ @_ @t @r @s @(Exists k f)
+foldG alg x = foldB @_ @_ @t @c @r @(RepK t) @tys alg alg (fromK @k @t x)
 
 -- In the simple recursor, f has kind LoT k -> * (same as t)
 
@@ -224,6 +146,19 @@ class UnitB t f tys
   tupleB :: AlgebraB t r f tys
          -> AlgebraB t s f tys
          -> AlgebraB t (r, s) f tys
+
+instance ( FoldB t c r f tys, FoldB t c r g tys )
+         => FoldB t c r (f :+: g) tys where
+  type AlgebraB t r (f :+: g) = AlgebraB t r f :*: AlgebraB t r g
+  foldB recf (fx :*: _) (L1 x) = foldB @_ @_ @t @c recf fx x
+  foldB recf (_ :*: fy) (R1 y) = foldB @_ @_ @t @c recf fy y
+instance ( UnitB t f tys, UnitB t g tys )
+         => UnitB t (f :+: g) tys where
+  unitB = unitB @_ @_ @t @f :*: unitB @_ @_ @t @g
+instance ( TupleB t r s f tys, TupleB t r s g tys )
+         => TupleB t r s (f :+: g) tys where
+  tupleB (x :*: y) (a :*: b)
+    = tupleB @_ @_ @t @r @s @f x a :*: tupleB @_ @_ @t @r @s @g y b 
 
 newtype (:~>:) (f :: LoT k -> *) (g :: LoT k -> *) (tys :: LoT k) where
   OneArg :: (f tys -> g tys) -> (f :~>: g) tys
@@ -358,12 +293,12 @@ type family Igualicos (a :: k) (b :: k) :: Bool where
 
 instance Functor (Algebra t c) where
   fmap f (Alg (Proxy :: Proxy x) v r) = Alg (Proxy @x) v (f . r)
-instance (f ~ RepK t, forall tys. UnitDT t f tys, forall r s tys. TupleDT t r s f tys)
+instance (f ~ RepK t, forall tys. UnitB t f tys, forall r s tys. TupleB t r s f tys)
          => Applicative (Algebra t c) where
-  pure x = Alg (Proxy @()) (unitDT @_ @t @(RepK t)) (\_ -> x)
+  pure x = Alg (Proxy @()) (unitB @_ @_ @t @(RepK t)) (\_ -> x)
   (Alg (px :: Proxy fx) fv fr) <*> (Alg (Proxy :: Proxy xx) xv xr)
          = Alg (Proxy @(fx, xx))
-               (tupleDT @_ @t @fx @xx @(RepK t) fv xv)
+               (tupleB @_ @_ @t @fx @xx @(RepK t) fv xv)
                (\(f, x) -> fr f (xr x))
 instance (Applicative (Algebra t c), Semigroup s)
          => Semigroup (Algebra t c s) where
