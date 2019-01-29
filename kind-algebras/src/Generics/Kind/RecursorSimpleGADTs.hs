@@ -26,18 +26,17 @@ import qualified Control.Category as Cat
 import qualified Control.Arrow as Arrow
 
 data Algebra (t :: k) (r :: *) where
-  Alg :: Proxy x
-      -> (forall tys. Algebra' t x tys)
+  Alg :: (forall tys. Algebra' t x tys)
       -> (x -> r)
       -> Algebra t r
 
 lengthAlg :: Algebra Maybe Int
-lengthAlg = Alg (Proxy @Int) (Field 0  :*: OneArg (\_ -> Field 1)) id
+lengthAlg = Alg (Field 0  :*: OneArg (\_ -> Field 1)) id
 
 applyLength = foldAlgebra @_ @Maybe @_ @_ @(Int :&&: LoT0) lengthAlg (Just 2)
 
 maybeAlg :: Algebra Maybe Bool
-maybeAlg = Alg (Proxy @Bool) (Field False :*: OneArg (\_ -> Field True)) id
+maybeAlg = Alg (Field False :*: OneArg (\_ -> Field True)) id
 
 notMaybeAlg :: Algebra Maybe Bool
 notMaybeAlg = not <$> maybeAlg
@@ -57,7 +56,7 @@ instance GenericK Vec (n :&&: a :&&: LoT0) where
   toK (R1 (Exists (SuchThat (Field x :*: Field xs)))) = VCons x xs
 
 lengthAlgVec :: Algebra Vec Int
-lengthAlgVec = Alg (Proxy @Int) (IfImpliesK (Field 1) :*: ForAllK (IfImpliesK (OneArg (\_ -> OneArg (\(Field n) -> Field(n+1)))))) id
+lengthAlgVec = Alg (IfImpliesK (Field 1) :*: ForAllK (IfImpliesK (OneArg (\_ -> OneArg (\(Field n) -> Field(n+1)))))) id
 
 twiceLengthAlgVec :: Algebra Vec Int
 twiceLengthAlgVec = (+) <$> lengthAlgVec <*> lengthAlgVec
@@ -68,7 +67,7 @@ type FoldK t r tys = (GenericK t tys, FoldB t r (RepK t) tys)
 foldAlgebra :: forall k (t :: k) r f tys.
                (GenericK t tys, f ~ RepK t, forall p. FoldB t p f tys)
             => Algebra t r -> t :@@: tys -> r
-foldAlgebra (Alg (Proxy :: Proxy x) v r) x = r (foldG @k @t @x @tys v x)
+foldAlgebra (Alg v (r :: x -> r)) x = r (foldG @k @t @x @tys v x)
 
 foldG :: forall k (t :: k) r tys. (FoldK t r tys)
       => (forall bop. Algebra' t r bop)
@@ -256,13 +255,12 @@ type family Igualicos (a :: k) (b :: k) :: Bool where
   Igualicos a b = 'False
 
 instance Functor (Algebra t) where
-  fmap f (Alg (Proxy :: Proxy x) v r) = Alg (Proxy @x) v (f . r)
+  fmap f (Alg v r) = Alg v (f . r)
 instance (f ~ RepK t, forall tys. UnitB t f tys, forall r s tys. TupleB t r s f tys)
          => Applicative (Algebra t) where
-  pure x = Alg (Proxy @()) (unitB @_ @_ @t @(RepK t)) (\_ -> x)
-  (Alg (px :: Proxy fx) fv fr) <*> (Alg (Proxy :: Proxy xx) xv xr)
-         = Alg (Proxy @(fx, xx))
-               (tupleB @_ @_ @t @fx @xx @(RepK t) fv xv)
+  pure x = Alg (unitB @_ @_ @t @(RepK t)) (\() -> x)
+  (Alg fv (fr :: fx -> r -> s)) <*> (Alg xv (xr :: xx -> r))
+         = Alg (tupleB @_ @_ @t @fx @xx @(RepK t) fv xv)
                (\(f, x) -> fr f (xr x))
 instance (Applicative (Algebra t), Semigroup s)
          => Semigroup (Algebra t s) where
