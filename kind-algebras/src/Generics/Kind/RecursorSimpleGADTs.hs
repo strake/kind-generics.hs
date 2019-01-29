@@ -36,6 +36,9 @@ alg recf = Alg recf id
 lengthAlg :: Algebra Maybe Int
 lengthAlg = alg (Field 0  :*: OneArg (\_ -> Field 1))
 
+-- sumAlg :: Algebra Maybe Int
+-- sumAlg = alg (Field 0  :*: OneArg (\(Field n) -> Field n))
+
 applyLength = foldAlgebra @_ @Maybe @_ @_ @(Int :&&: LoT0) lengthAlg (Just 2)
 
 maybeAlg :: Algebra Maybe Bool
@@ -60,6 +63,9 @@ instance GenericK Vec (n :&&: a :&&: LoT0) where
 
 lengthAlgVec :: Algebra Vec Int
 lengthAlgVec = alg (IfImpliesK (Field 1) :*: ForAllK (IfImpliesK (OneArg (\_ -> OneArg (\(Field n) -> Field(n+1))))))
+
+-- sumAlgVec :: Algebra Vec Int
+-- sumAlgVec = alg (IfImpliesK (Field 0) :*: ForAllK (IfImpliesK (OneArg (\(Field n) -> OneArg (\(Field r) -> Field(n+r))))))
 
 twiceLengthAlgVec :: Algebra Vec Int
 twiceLengthAlgVec = (+) <$> lengthAlgVec <*> lengthAlgVec
