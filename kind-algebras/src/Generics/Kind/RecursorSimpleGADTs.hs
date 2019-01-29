@@ -30,13 +30,16 @@ data Algebra (t :: k) (r :: *) where
       -> (x -> r)
       -> Algebra t r
 
+alg :: (forall tys. Algebra' t r tys) -> Algebra t r
+alg recf = Alg recf id
+
 lengthAlg :: Algebra Maybe Int
-lengthAlg = Alg (Field 0  :*: OneArg (\_ -> Field 1)) id
+lengthAlg = alg (Field 0  :*: OneArg (\_ -> Field 1))
 
 applyLength = foldAlgebra @_ @Maybe @_ @_ @(Int :&&: LoT0) lengthAlg (Just 2)
 
 maybeAlg :: Algebra Maybe Bool
-maybeAlg = Alg (Field False :*: OneArg (\_ -> Field True)) id
+maybeAlg = alg (Field False :*: OneArg (\_ -> Field True))
 
 notMaybeAlg :: Algebra Maybe Bool
 notMaybeAlg = not <$> maybeAlg
@@ -56,7 +59,7 @@ instance GenericK Vec (n :&&: a :&&: LoT0) where
   toK (R1 (Exists (SuchThat (Field x :*: Field xs)))) = VCons x xs
 
 lengthAlgVec :: Algebra Vec Int
-lengthAlgVec = Alg (IfImpliesK (Field 1) :*: ForAllK (IfImpliesK (OneArg (\_ -> OneArg (\(Field n) -> Field(n+1)))))) id
+lengthAlgVec = alg (IfImpliesK (Field 1) :*: ForAllK (IfImpliesK (OneArg (\_ -> OneArg (\(Field n) -> Field(n+1))))))
 
 twiceLengthAlgVec :: Algebra Vec Int
 twiceLengthAlgVec = (+) <$> lengthAlgVec <*> lengthAlgVec
@@ -72,7 +75,7 @@ foldAlgebra (Alg v (r :: x -> r)) x = r (foldG @k @t @x @tys v x)
 foldG :: forall k (t :: k) r tys. (FoldK t r tys)
       => (forall bop. Algebra' t r bop)
       -> t :@@: tys -> r
-foldG alg x = foldB @k @k @t @r @(RepK t) @tys alg alg (fromK @k @t x)
+foldG a x = foldB @k @k @t @r @(RepK t) @tys a a (fromK @k @t x)
 
 -- In the simple recursor, f has kind LoT k -> * (same as t)
 
@@ -312,7 +315,7 @@ instance Applicative (Algebra t) => Cat.Category (AlgebraArr t) where
 
 instance Applicative (Algebra t) => Arrow.Arrow (AlgebraArr t) where
   arr f = AlgebraArr $ pure f
-  first (AlgebraArr alg) = AlgebraArr $ Arrow.first <$> alg
-  second (AlgebraArr alg) = AlgebraArr $ Arrow.second <$> alg
+  first (AlgebraArr a) = AlgebraArr $ Arrow.first <$> a
+  second (AlgebraArr a) = AlgebraArr $ Arrow.second <$> a
   AlgebraArr f *** AlgebraArr g = AlgebraArr $ (Arrow.***) <$> f <*> g
   AlgebraArr f &&& AlgebraArr g = AlgebraArr $ (Arrow.&&&) <$> f <*> g
