@@ -202,6 +202,7 @@ instance ( FoldK t r LoT0 )
          => FoldF t r (Kon t) 'False LoT0 where
   foldF recf (Field x) = Field $ foldG @_ @t @r @LoT0 recf x
 -- For now we do not allow weird recursion
+{-
 instance ( FoldK t r (LoT1 (Interpret a (LoT1 x)))
          , a ~ ElReemplazador t r a )
          => FoldF t r (Kon t :@: a) 'False (LoT1 x) where
@@ -210,6 +211,27 @@ instance ( FoldK t r (LoT2 (Interpret a (LoT2 x y)) (Interpret b (LoT2 x y)))
          , a ~ ElReemplazador t r a, b ~ ElReemplazador t r b )
          => FoldF t r (Kon t :@: a :@: b) 'False (LoT2 x y) where
   foldF recf (Field x) = Field $ foldG @_ @t @r @(LoT2 (Interpret a (LoT2 x y)) (Interpret b (LoT2 x y))) recf x
+-}
+
+instance ( ElReemplazador t r x ~ Kon r
+         , GenericK t (InterpretAll (Args x) tys)
+         , FoldB t r (RepK t) (InterpretAll (Args x) tys)
+         , Interpret x tys ~ (t :@@: InterpretAll (Args x) tys)  )
+         => FoldF t r x 'False tys where
+  foldF recf (Field x) = Field $ foldG @_ @t @r @(InterpretAll (Args x) tys) recf x
+
+data Atoms (d :: *) (k :: *) where
+  Atom0 :: Atoms d (*)
+  AtomA :: Atom d k -> Atoms d ks -> Atoms d (k -> ks)
+
+type family InterpretAll (xs :: Atoms k l) (tys :: LoT k) :: LoT l where
+  InterpretAll Atom0 tys = LoT0
+  InterpretAll (AtomA a as) tys = Interpret a tys :&&: InterpretAll as tys
+
+type family Args (xs :: Atom d (*)) :: Atoms d l where
+  Args (Kon t) = Atom0
+  Args (Kon t :@: x) = AtomA x Atom0
+  Args (Kon t :@: x :@: y) = AtomA x (AtomA y Atom0)
 
 instance UntupleF t (Kon t) r s 'False tys where
   untupleF (Field (a, b)) = (Field a, Field b)
