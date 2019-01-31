@@ -45,6 +45,9 @@ data Algebra (t :: k) (c :: LoT k -> Constraint) (r :: *) where
       -> (x -> r)
       -> Algebra t c r
 
+alg :: (forall tys. c tys => Algebra' t r tys) -> Algebra t c r
+alg recf = Alg Proxy recf id
+
 upgrade :: (forall tys. d tys => c tys) => Algebra t c r -> Algebra t d r
 upgrade (Alg px alg r) = Alg px alg r
 
@@ -74,7 +77,10 @@ algebra2 p alg r = Alg p algebra2' r
 lengthAlg :: forall a. Num a => Algebra Maybe Trivial a
 lengthAlg = Alg (Proxy @a) (Field 0  :*: OneArg (\_ -> Field 1)) id
 
-applyLength = foldAlgebra @_ @Maybe @_ @_ @_ @(Int :&&: LoT0) lengthAlg (Just 2)
+lengthAlg2 :: Algebra Maybe Trivial Integer
+lengthAlg2 = Alg (Proxy @Integer) (Field 0  :*: OneArg (\_ -> Field 1)) id
+
+applyLength = foldAlgebra @_ @Maybe @(Int :&&: LoT0) lengthAlg (Just 2)
 
 maybeAlg :: Algebra Maybe Trivial Bool
 maybeAlg = Alg (Proxy @Bool) (Field False :*: OneArg (\_ -> Field True)) id
@@ -87,8 +93,11 @@ sumAlg = algebra1 (Proxy @a) sumAlg' id
   where sumAlg' :: Algebra' Maybe a (a :&&: LoT0)
         sumAlg' = Field 0 :*: OneArg (\(Field n) -> Field n)
 
-avgAlg :: forall a. Fractional a => Algebra Maybe (Both SForLoT (Zas (((~) a) :&&&: NoMore))) a
-avgAlg = (/) <$> sumAlg <*> upgrade lengthAlg
+sumAlg2 :: forall a. Num a => Algebra Maybe ((~) (a :&&: LoT0)) a
+sumAlg2 = alg (Field 0 :*: OneArg (\(Field n) -> Field n))
+
+avgAlg :: Fractional a => Algebra Maybe ((~) (a :&&: LoT0)) a
+avgAlg = (/) <$> sumAlg2 <*> upgrade (fromInteger <$> lengthAlg2)
 
 data Vec (n :: Nat) a where
   VNil   ::                   Vec Z     a
@@ -104,10 +113,10 @@ instance GenericK Vec (n :&&: a :&&: LoT0) where
   toK (L1 (SuchThat U1)) = VNil
   toK (R1 (Exists (SuchThat (Field x :*: Field xs)))) = VCons x xs
 
-lengthAlgVec :: Algebra Vec Trivial Int
-lengthAlgVec = Alg (Proxy @Int) (IfImpliesK (Field 1) :*: ForAllK (IfImpliesK (OneArg (\_ -> OneArg (\(Field n) -> Field(n+1)))))) id
+lengthAlgVec :: Algebra Vec Trivial Integer
+lengthAlgVec = alg (IfImpliesK (Field 1) :*: ForAllK (IfImpliesK (OneArg (\_ -> OneArg (\(Field n) -> Field(n+1))))))
 
-twiceLengthAlgVec :: Algebra Vec Trivial Int
+twiceLengthAlgVec :: Algebra Vec Trivial Integer
 twiceLengthAlgVec = (+) <$> lengthAlgVec <*> lengthAlgVec
 
 sumAlgVec :: forall a. Num a => Algebra Vec (Both SForLoT (Zas (Trivial :&&&: ((~) a) :&&&: NoMore))) a
@@ -118,10 +127,22 @@ sumAlgVec = algebra2 (Proxy @a) sumAlg' id
                        OneArg $ \(Field x) ->
                        OneArg $ \(Field n) -> Field (x + n))
 
+applySumAlgVec :: Vec n Float -> Float
+applySumAlgVec = foldAlgebra @_ @Vec @(LoT2 _ _) sumAlgVec
+
+sumAlgVec2 :: forall n a. Num a => Algebra Vec ((~) (n :&&: a :&&: LoT0)) a
+sumAlgVec2 = alg $ (IfImpliesK $ Field 0)
+                   :*: (ForAllK $ IfImpliesK $
+                        OneArg $ \(Field x) ->
+                        OneArg $ \(Field n) -> Field (x + n))
+
+avgAlgVec :: Fractional a => Algebra Vec ((~) (n :&&: a :&&: LoT0)) a
+avgAlgVec = (/) <$> sumAlgVec2 <*> upgrade (fromInteger <$> lengthAlgVec)
+
 type Algebra' t r tys = AlgebraB t r (RepK t) tys
 type FoldK t c r tys = (GenericK t tys, FoldB t c r (RepK t) tys)
 
-foldAlgebra :: forall k (t :: k) c r f tys.
+foldAlgebra :: forall (t :: k) tys c r f.
                (GenericK t tys, f ~ RepK t, forall p. FoldB t c p f tys, c tys)
             => Algebra t c r -> t :@@: tys -> r
 foldAlgebra (Alg (Proxy :: Proxy x) v r) x = r (foldG @k @t @c @x @tys v x)
