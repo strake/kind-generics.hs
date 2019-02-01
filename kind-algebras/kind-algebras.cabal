@@ -18,6 +18,7 @@ source-repository head
 
 library
   exposed-modules:     Generics.Kind.Inductor,
+                       Generics.Kind.InductorSimpleGADTs,
                        Generics.Kind.RecursorConstraints,
                        Generics.Kind.RecursorSimpleGADTs
   -- other-modules:
