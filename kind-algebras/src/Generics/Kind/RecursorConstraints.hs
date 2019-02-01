@@ -30,23 +30,8 @@ instance Trivial a where
 class (c x, d x) => (c :/\: d) x where
 instance (c x, d x) => (c :/\: d) x where
 
-class (tys ~ (InterpretVar VZ tys :&&: LoT0)) => OneArg tys where
-instance OneArg (a :&&: LoT0) where
-
-class (tys ~ (InterpretVar VZ tys :&&: InterpretVar (VS VZ) tys :&&: LoT0)) => TwoArgs tys where
-instance TwoArgs (a :&&: b :&&: LoT0) where
-
--- class (Interpret c tys) => InterpretConstraint (c :: Atom k Constraint) (tys :: LoT k) where
--- instance (Interpret c tys) => InterpretConstraint c tys where
-
 class (InterpretVar v tys ~ a) => (v :==: a) tys where
 instance (InterpretVar v tys ~ a) => (v :==: a) tys where
-
--- class (c (Tail tys)) => Drop c tys where
--- instance (c tys) => Drop c (ty :&&: tys) where
-
-type family Tail (x :: LoT (d -> k)) :: LoT k where
-  Tail (x :&&: xs) = xs
 
 upgrade :: (forall tys. d tys => c tys) => Algebra t c r -> Algebra t d r
 upgrade (Alg px alg r) = Alg px alg r
@@ -96,17 +81,14 @@ lengthAlgVec = alg (IfImpliesK (Field 1) :*: ForAllK (IfImpliesK (OneArg (\_ -> 
 twiceLengthAlgVec :: Algebra Vec Trivial Integer
 twiceLengthAlgVec = (+) <$> lengthAlgVec <*> lengthAlgVec
 
-sumAlgVec :: (Num a, TwoArgs tys, ((VS VZ) :==: a) tys) => Algebra' Vec a tys
-sumAlgVec = (IfImpliesK $ Field 0)
-            :*: (ForAllK $ IfImpliesK $
-                 OneArg $ \(Field x) ->
-                 OneArg $ \(Field n) -> Field (x + n))
-
-sumAlgVec2 :: Num a => Algebra Vec (TwoArgs :/\: (VS VZ :==: a)) a
-sumAlgVec2 = alg sumAlgVec
+sumAlgVec :: Num a => Algebra Vec (VS VZ :==: a) a
+sumAlgVec = alg $ (IfImpliesK $ Field 0)
+                  :*: (ForAllK $ IfImpliesK $
+                       OneArg $ \(Field x) ->
+                       OneArg $ \(Field n) -> Field (x + n))
 
 applySumAlgVec :: Float
-applySumAlgVec = foldAlgebra @_ @Vec @(LoT2 (S (S Z)) Float) sumAlgVec2 ((VCons 1 (VCons 2 VNil)) :: Vec (S (S Z)) Float)
+applySumAlgVec = foldAlgebra @_ @Vec @(LoT2 (S (S Z)) Float) sumAlgVec ((VCons 1 (VCons 2 VNil)) :: Vec (S (S Z)) Float)
 
 type Algebra' t r tys = AlgebraB t r (RepK t) tys
 type FoldK t c r tys = (GenericK t tys, FoldB t c tys r (RepK t) tys)

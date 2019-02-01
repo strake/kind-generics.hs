@@ -214,21 +214,6 @@ instance ( ElReemplazador t r x ~ ElReemplazador t (r,s) x, ElReemplazador t s x
          => UntupleF t x r s 'True tys where
   untupleF x = (x, x)
 
-{-
-instance ( FoldK t r LoT0 )
-         => FoldF t r (Kon t) 'False LoT0 where
-  foldF recf (Field x) = Field $ foldG @_ @t @r @LoT0 recf x
--- For now we do not allow weird recursion
-instance ( FoldK t r (LoT1 (Interpret a (LoT1 x)))
-         , a ~ ElReemplazador t r a )
-         => FoldF t r (Kon t :@: a) 'False (LoT1 x) where
-  foldF recf (Field x) = Field $ foldG @_ @t @r @(LoT1 (Interpret a (LoT1 x))) recf x
-instance ( FoldK t r (LoT2 (Interpret a (LoT2 x y)) (Interpret b (LoT2 x y)))
-         , a ~ ElReemplazador t r a, b ~ ElReemplazador t r b )
-         => FoldF t r (Kon t :@: a :@: b) 'False (LoT2 x y) where
-  foldF recf (Field x) = Field $ foldG @_ @t @r @(LoT2 (Interpret a (LoT2 x y)) (Interpret b (LoT2 x y))) recf x
--}
-
 instance ( ElReemplazador t r x ~ Kon r
          , Foldy t r (InterpretAll (Args x) tys)
          , Interpret x tys ~ (t :@@: InterpretAll (Args x) tys)  )
