@@ -15,6 +15,7 @@
 {-# language UndecidableInstances  #-}
 {-# language ConstraintKinds       #-}
 {-# language QuantifiedConstraints #-}
+{-# language DefaultSignatures     #-}
 module Generics.Kind.RecursorSimpleGADTs where
 
 import Generics.Kind
@@ -32,6 +33,8 @@ data Algebra (t :: k) (r :: *) where
 
 alg :: (forall tys. Algebra' t r tys) -> Algebra t r
 alg recf = Alg recf id
+
+instance Foldy Maybe r (a :&&: LoT0)
 
 lengthAlg :: Algebra Maybe Int
 lengthAlg = alg (Field 0  :*: OneArg (\_ -> Field 1))
@@ -64,6 +67,10 @@ instance GenericK Vec (n :&&: a :&&: LoT0) where
 lengthAlgVec :: Algebra Vec Int
 lengthAlgVec = alg (IfImpliesK (Field 1) :*: ForAllK (IfImpliesK (OneArg (\_ -> OneArg (\(Field n) -> Field(n+1))))))
 
+instance Foldy Vec r (a :&&: b :&&: LoT0)
+
+applyLengthVec = foldAlgebra @_ @Vec @_ @_ @((S Z) :&&: Int :&&: LoT0) lengthAlgVec (VCons 2 VNil)
+
 -- sumAlgVec :: Algebra Vec Int
 -- sumAlgVec = alg (IfImpliesK (Field 0) :*: ForAllK (IfImpliesK (OneArg (\(Field n) -> OneArg (\(Field r) -> Field(n+r))))))
 
@@ -74,16 +81,17 @@ type Algebra' t r = AlgebraB t r (RepK t)
 type FoldK t r tys = (GenericK t tys, FoldB t r (RepK t) tys)
 
 foldAlgebra :: forall k (t :: k) r f tys.
-               (GenericK t tys, f ~ RepK t, forall p. FoldB t p f tys)
+               (forall p. Foldy t p tys)
             => Algebra t r -> t :@@: tys -> r
 foldAlgebra (Alg v (r :: x -> r)) x = r (foldG @k @t @x @tys v x)
 
-foldG :: forall k (t :: k) r tys. (FoldK t r tys)
-      => (forall bop. Algebra' t r bop)
-      -> t :@@: tys -> r
-foldG a x = foldB @k @k @t @r @(RepK t) @tys a a (fromK @k @t x)
-
 -- In the simple recursor, f has kind LoT k -> * (same as t)
+
+class Foldy (t :: k) (r :: *) (tys :: LoT k) where
+  foldG :: (forall bop. Algebra' t r bop) -> t :@@: tys -> r
+  default foldG :: (GenericK t tys, FoldB t r (RepK t) tys)
+                => (forall bop. Algebra' t r bop) -> t :@@: tys -> r
+  foldG a x = foldB @k @k @t @r @(RepK t) @tys a a (fromK @k @t x)
 
 class FoldB (t :: k) (r :: *)
             (f :: LoT l -> *) (tys :: LoT l) where
@@ -206,11 +214,11 @@ instance ( ElReemplazador t r x ~ ElReemplazador t (r,s) x, ElReemplazador t s x
          => UntupleF t x r s 'True tys where
   untupleF x = (x, x)
 
+{-
 instance ( FoldK t r LoT0 )
          => FoldF t r (Kon t) 'False LoT0 where
   foldF recf (Field x) = Field $ foldG @_ @t @r @LoT0 recf x
 -- For now we do not allow weird recursion
-{-
 instance ( FoldK t r (LoT1 (Interpret a (LoT1 x)))
          , a ~ ElReemplazador t r a )
          => FoldF t r (Kon t :@: a) 'False (LoT1 x) where
@@ -222,8 +230,7 @@ instance ( FoldK t r (LoT2 (Interpret a (LoT2 x y)) (Interpret b (LoT2 x y)))
 -}
 
 instance ( ElReemplazador t r x ~ Kon r
-         , GenericK t (InterpretAll (Args x) tys)
-         , FoldB t r (RepK t) (InterpretAll (Args x) tys)
+         , Foldy t r (InterpretAll (Args x) tys)
          , Interpret x tys ~ (t :@@: InterpretAll (Args x) tys)  )
          => FoldF t r x 'False tys where
   foldF recf (Field x) = Field $ foldG @_ @t @r @(InterpretAll (Args x) tys) recf x

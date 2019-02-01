@@ -16,63 +16,42 @@
 {-# language ConstraintKinds       #-}
 {-# language QuantifiedConstraints #-}
 {-# language UndecidableSuperClasses #-}
+{-# language DefaultSignatures #-}
 module Generics.Kind.RecursorConstraints where
 
 import Generics.Kind
 import Generics.Kind.Examples
 import Data.Proxy
-import Unsafe.Coerce
 import GHC.Base (liftA2, Constraint)
-
-infixr 5 :&&&:
-data ConstraintsFor (t :: k) where
-  NoMore :: ConstraintsFor (*)
-  (:&&&:) :: (k -> Constraint) -> ConstraintsFor ks -> ConstraintsFor (k -> ks)
-
-class Satisfies' cs tys => Zas (cs :: ConstraintsFor k) (tys :: LoT k) where
-instance Satisfies' cs tys => Zas cs tys where
-
-type family Satisfies' (cs ::ConstraintsFor k) (tys :: LoT k) :: Constraint where
-  Satisfies' NoMore LoT0 = ()
-  Satisfies' (c :&&&: cs) (ty :&&: tys) = (c ty, Satisfies' cs tys)
 
 class Trivial (a :: k) where
 instance Trivial a where
 
-data Algebra (t :: k) (c :: LoT k -> Constraint) (r :: *) where
-  Alg :: Proxy x
-      -> (forall tys. c tys => Algebra' t x tys)
-      -> (x -> r)
-      -> Algebra t c r
+class (c x, d x) => (c :/\: d) x where
+instance (c x, d x) => (c :/\: d) x where
 
-alg :: (forall tys. c tys => Algebra' t r tys) -> Algebra t c r
-alg recf = Alg Proxy recf id
+class (tys ~ (InterpretVar VZ tys :&&: LoT0)) => OneArg tys where
+instance OneArg (a :&&: LoT0) where
+
+class (tys ~ (InterpretVar VZ tys :&&: InterpretVar (VS VZ) tys :&&: LoT0)) => TwoArgs tys where
+instance TwoArgs (a :&&: b :&&: LoT0) where
+
+-- class (Interpret c tys) => InterpretConstraint (c :: Atom k Constraint) (tys :: LoT k) where
+-- instance (Interpret c tys) => InterpretConstraint c tys where
+
+class (InterpretVar v tys ~ a) => (v :==: a) tys where
+instance (InterpretVar v tys ~ a) => (v :==: a) tys where
+
+-- class (c (Tail tys)) => Drop c tys where
+-- instance (c tys) => Drop c (ty :&&: tys) where
+
+type family Tail (x :: LoT (d -> k)) :: LoT k where
+  Tail (x :&&: xs) = xs
 
 upgrade :: (forall tys. d tys => c tys) => Algebra t c r -> Algebra t d r
 upgrade (Alg px alg r) = Alg px alg r
 
-class (c x, d x) => Both c d x where
-instance (c x, d x) => Both c d x where
-
-algebra1 :: forall t c x r. Proxy x
-         -> (forall a. c (a :&&: LoT0) => Algebra' t x (a :&&: LoT0))
-         -> (x -> r)
-         -> Algebra t (Both SForLoT c) r
-algebra1 p alg r = Alg p algebra1' r
-  where
-    algebra1' :: forall tys. (SForLoT tys, c tys) => Algebra' t x tys
-    algebra1' = case slot @_ @tys of
-                  SLoTA _ SLoT0 -> alg
-
-algebra2 :: forall t c x r. Proxy x
-         -> (forall a b. c (a :&&: b :&&: LoT0) => Algebra' t x (a :&&: b :&&: LoT0))
-         -> (x -> r)
-         -> Algebra t (Both SForLoT c) r
-algebra2 p alg r = Alg p algebra2' r
-  where
-    algebra2' :: forall tys. (SForLoT tys, c tys) => Algebra' t x tys
-    algebra2' = case slot @_ @tys of
-                  SLoTA _ (SLoTA _ SLoT0) -> alg
+instance Foldy Maybe c r (a :&&: LoT0)
 
 lengthAlg :: forall a. Num a => Algebra Maybe Trivial a
 lengthAlg = Alg (Proxy @a) (Field 0  :*: OneArg (\_ -> Field 1)) id
@@ -88,16 +67,11 @@ maybeAlg = Alg (Proxy @Bool) (Field False :*: OneArg (\_ -> Field True)) id
 notMaybeAlg :: Algebra Maybe Trivial Bool
 notMaybeAlg = not <$> maybeAlg
 
-sumAlg :: forall a. Num a => Algebra Maybe (Both SForLoT (Zas (((~) a) :&&&: NoMore))) a
-sumAlg = algebra1 (Proxy @a) sumAlg' id
-  where sumAlg' :: Algebra' Maybe a (a :&&: LoT0)
-        sumAlg' = Field 0 :*: OneArg (\(Field n) -> Field n)
-
-sumAlg2 :: forall a. Num a => Algebra Maybe ((~) (a :&&: LoT0)) a
-sumAlg2 = alg (Field 0 :*: OneArg (\(Field n) -> Field n))
+sumAlg :: forall a. Num a => Algebra Maybe ((~) (a :&&: LoT0)) a
+sumAlg = alg (Field 0 :*: OneArg (\(Field n) -> Field n))
 
 avgAlg :: Fractional a => Algebra Maybe ((~) (a :&&: LoT0)) a
-avgAlg = (/) <$> sumAlg2 <*> upgrade (fromInteger <$> lengthAlg2)
+avgAlg = (/) <$> sumAlg <*> upgrade (fromInteger <$> lengthAlg2)
 
 data Vec (n :: Nat) a where
   VNil   ::                   Vec Z     a
@@ -113,48 +87,53 @@ instance GenericK Vec (n :&&: a :&&: LoT0) where
   toK (L1 (SuchThat U1)) = VNil
   toK (R1 (Exists (SuchThat (Field x :*: Field xs)))) = VCons x xs
 
+instance (forall n. c (n :&&: b :&&: LoT0)) => Foldy Vec c r (a :&&: b :&&: LoT0) where
+  foldG a x = foldB @_ @_ @Vec @c @(a :&&: b :&&: LoT0) @r @(RepK Vec) @(a :&&: b :&&: LoT0) a a (fromK @_ @Vec x)
+
 lengthAlgVec :: Algebra Vec Trivial Integer
 lengthAlgVec = alg (IfImpliesK (Field 1) :*: ForAllK (IfImpliesK (OneArg (\_ -> OneArg (\(Field n) -> Field(n+1))))))
 
 twiceLengthAlgVec :: Algebra Vec Trivial Integer
 twiceLengthAlgVec = (+) <$> lengthAlgVec <*> lengthAlgVec
 
-sumAlgVec :: forall a. Num a => Algebra Vec (Both SForLoT (Zas (Trivial :&&&: ((~) a) :&&&: NoMore))) a
-sumAlgVec = algebra2 (Proxy @a) sumAlg' id
-  where sumAlg' :: forall n. Algebra' Vec a (n :&&: a :&&: LoT0)
-        sumAlg' = (IfImpliesK $ Field 0)
-                  :*: (ForAllK $ IfImpliesK $
-                       OneArg $ \(Field x) ->
-                       OneArg $ \(Field n) -> Field (x + n))
+sumAlgVec :: (Num a, TwoArgs tys, ((VS VZ) :==: a) tys) => Algebra' Vec a tys
+sumAlgVec = (IfImpliesK $ Field 0)
+            :*: (ForAllK $ IfImpliesK $
+                 OneArg $ \(Field x) ->
+                 OneArg $ \(Field n) -> Field (x + n))
 
-applySumAlgVec :: Vec n Float -> Float
-applySumAlgVec = foldAlgebra @_ @Vec @(LoT2 _ _) sumAlgVec
+sumAlgVec2 :: Num a => Algebra Vec (TwoArgs :/\: (VS VZ :==: a)) a
+sumAlgVec2 = alg sumAlgVec
 
-sumAlgVec2 :: forall n a. Num a => Algebra Vec ((~) (n :&&: a :&&: LoT0)) a
-sumAlgVec2 = alg $ (IfImpliesK $ Field 0)
-                   :*: (ForAllK $ IfImpliesK $
-                        OneArg $ \(Field x) ->
-                        OneArg $ \(Field n) -> Field (x + n))
-
-avgAlgVec :: Fractional a => Algebra Vec ((~) (n :&&: a :&&: LoT0)) a
-avgAlgVec = (/) <$> sumAlgVec2 <*> upgrade (fromInteger <$> lengthAlgVec)
+applySumAlgVec :: Float
+applySumAlgVec = foldAlgebra @_ @Vec @(LoT2 (S (S Z)) Float) sumAlgVec2 ((VCons 1 (VCons 2 VNil)) :: Vec (S (S Z)) Float)
 
 type Algebra' t r tys = AlgebraB t r (RepK t) tys
-type FoldK t c r tys = (GenericK t tys, FoldB t c r (RepK t) tys)
+type FoldK t c r tys = (GenericK t tys, FoldB t c tys r (RepK t) tys)
 
-foldAlgebra :: forall (t :: k) tys c r f.
-               (GenericK t tys, f ~ RepK t, forall p. FoldB t c p f tys, c tys)
+data Algebra (t :: k) (c :: LoT k -> Constraint) (r :: *) where
+  Alg :: Proxy x
+      -> (forall tys. c tys => Algebra' t x tys)
+      -> (x -> r)
+      -> Algebra t c r
+
+alg :: (forall tys. c tys => Algebra' t r tys) -> Algebra t c r
+alg recf = Alg Proxy recf id
+
+foldAlgebra :: forall (t :: k) tys r c f.
+               (c tys, forall p. Foldy t c p tys)
             => Algebra t c r -> t :@@: tys -> r
 foldAlgebra (Alg (Proxy :: Proxy x) v r) x = r (foldG @k @t @c @x @tys v x)
 
-foldG :: forall k (t :: k) c r tys. (FoldK t c r tys, c tys)
-      => (forall bop. c bop => Algebra' t r bop)
-      -> t :@@: tys -> r
-foldG alg x = foldB @_ @_ @t @c @r @(RepK t) @tys alg alg (fromK @k @t x)
+class Foldy (t :: k) (c :: LoT k -> Constraint) (r :: *) (tys :: LoT k) where
+  foldG :: c tys => (forall bop. c bop => Algebra' t r bop) -> t :@@: tys -> r
+  default foldG :: (GenericK t tys, FoldB t c tys r (RepK t) tys, c tys)
+                => (forall bop. c bop => Algebra' t r bop) -> t :@@: tys -> r
+  foldG a x = foldB @_ @_ @t @c @tys @r @(RepK t) @tys a a (fromK @k @t x)
 
 -- In the simple recursor, f has kind LoT k -> * (same as t)
 
-class FoldB (t :: k) (c :: LoT k -> Constraint) (r :: *)
+class FoldB (t :: k) (c :: LoT k -> Constraint) (otys :: LoT k) (r :: *)
             (f :: LoT l -> *) (tys :: LoT l) where
   type AlgebraB t r f :: LoT l -> *
   foldB :: (forall bop. c bop => Algebra' t r bop)
@@ -168,11 +147,11 @@ class UnitB t f tys
          -> AlgebraB t s f tys
          -> AlgebraB t (r, s) f tys
 
-instance ( FoldB t c r f tys, FoldB t c r g tys )
-         => FoldB t c r (f :+: g) tys where
+instance ( FoldB t c otys r f tys, FoldB t c otys r g tys )
+         => FoldB t c otys r (f :+: g) tys where
   type AlgebraB t r (f :+: g) = AlgebraB t r f :*: AlgebraB t r g
-  foldB recf (fx :*: _) (L1 x) = foldB @_ @_ @t @c recf fx x
-  foldB recf (_ :*: fy) (R1 y) = foldB @_ @_ @t @c recf fy y
+  foldB recf (fx :*: _) (L1 x) = foldB @_ @_ @t @c @otys recf fx x
+  foldB recf (_ :*: fy) (R1 y) = foldB @_ @_ @t @c @otys recf fy y
 instance ( UnitB t f tys, UnitB t g tys )
          => UnitB t (f :+: g) tys where
   unitB = unitB @_ @_ @t @f :*: unitB @_ @_ @t @g
@@ -190,7 +169,7 @@ newtype ForAllK d (f :: LoT (d -> k) -> *) (tys :: LoT k) where
 newtype IfImpliesK (c :: Atom k Constraint) (f :: LoT k -> *) (tys :: LoT k) where
   IfImpliesK :: (Interpret c tys => f tys) -> IfImpliesK c f tys
 
-instance FoldB t c r U1 tys where
+instance FoldB t c otys r U1 tys where
   type AlgebraB t r U1 = Field (Kon r)
   foldB _ (Field r) U1 = r
 instance UnitB t U1 tys where
@@ -198,12 +177,12 @@ instance UnitB t U1 tys where
 instance TupleB t r s U1 tys where
   tupleB (Field x) (Field a) = Field (x, a)
 
-instance ( FoldF t c r x (Igualicos x (ElReemplazador t r x)) tys, FoldB t c r y tys )
-         => FoldB t c r (Field x :*: y) tys where
+instance ( FoldF t c otys r x (Igualicos x (ElReemplazador t r x)) tys, FoldB t c otys r y tys )
+         => FoldB t c otys r (Field x :*: y) tys where
   type AlgebraB t r (Field x :*: y) = Field (ElReemplazador t r x) :~>: AlgebraB t r y
   foldB recf (OneArg f) (v :*: w)
-    = foldB @_ @_ @t @c recf
-            (f (foldF @_ @_ @t @c @r @x @(Igualicos x (ElReemplazador t r x)) recf v)) w
+    = foldB @_ @_ @t @c @otys recf
+            (f (foldF @_ @_ @t @c @otys @r @x @(Igualicos x (ElReemplazador t r x)) recf v)) w
 instance ( UnitB t y tys )
          => UnitB t (Field x :*: y) tys where
   unitB = OneArg (\_ -> unitB @_ @_ @t @y)
@@ -218,11 +197,11 @@ instance ( TupleB t r s y tys
                          v
         in tupleB @_ @_ @t @r @s @y (x vx) (a va)
 
-instance ( FoldF t c r x (Igualicos x (ElReemplazador t r x)) tys )
-         => FoldB t c r (Field x) tys where
+instance ( FoldF t c otys r x (Igualicos x (ElReemplazador t r x)) tys )
+         => FoldB t c otys r (Field x) tys where
   type AlgebraB t r (Field x) = Field (ElReemplazador t r x) :~>: Field (Kon r)
   foldB recf (OneArg f) v
-    = unField $ f (foldF @_ @_ @t @c @r @x @(Igualicos x (ElReemplazador t r x)) recf v)
+    = unField $ f (foldF @_ @_ @t @c @otys @r @x @(Igualicos x (ElReemplazador t r x)) recf v)
 instance UnitB t (Field x) tys where
   unitB = OneArg (\_ -> Field ())
 instance UntupleF t x r s (Igualicos x (ElReemplazador t () x)) tys
@@ -235,11 +214,11 @@ instance UntupleF t x r s (Igualicos x (ElReemplazador t () x)) tys
                          v
         in Field (unField $ x vx, unField $ a va)
 
-instance ( forall ty. FoldB t c r f (ty :&&: tys) )
-         => FoldB t c r (Exists k f) tys where
+instance ( forall ty. FoldB t c otys r f (ty :&&: tys) )
+         => FoldB t c otys r (Exists k f) tys where
   type AlgebraB t r (Exists k f) = ForAllK k (AlgebraB t r f)
   foldB recf (ForAllK f) (Exists v)
-    = foldB @_ @_ @t @c recf f v
+    = foldB @_ @_ @t @c @otys recf f v
 instance ( forall ty. UnitB t f (ty :&&: tys) )
          => UnitB t (Exists k f) tys where
   unitB = ForAllK $ unitB @_ @_ @t @f
@@ -248,11 +227,11 @@ instance ( forall ty. TupleB t r s f (ty :&&: tys) )
   tupleB (ForAllK x) (ForAllK a)
     = ForAllK $ tupleB @_ @_ @t @r @s @f x a
 
-instance ( Interpret d tys => FoldB t c r f tys )
-         => FoldB t c r (d :=>: f) tys where
+instance ( Interpret d tys => FoldB t c otys r f tys )
+         => FoldB t c otys r (d :=>: f) tys where
   type AlgebraB t r (d :=>: f) = IfImpliesK d (AlgebraB t r f)
   foldB recf (IfImpliesK f) (SuchThat v)
-    = foldB @_ @_ @t @c recf f v
+    = foldB @_ @_ @t @c @otys recf f v
 instance ( Interpret c tys => UnitB t f tys )
          => UnitB t (c :=>: f) tys where
   unitB = IfImpliesK (unitB @_ @_ @t @f)
@@ -261,34 +240,40 @@ instance ( Interpret c tys => TupleB t r s f tys )
   tupleB (IfImpliesK x) (IfImpliesK a)
     = IfImpliesK $ tupleB @_ @_ @t @r @s @f x a
 
-class FoldF (t :: k) (c :: LoT k -> Constraint) (r :: *) (x :: Atom l (*))
-            (igualicos :: Bool) (tys :: LoT l) where
+class FoldF (t :: k) (c :: LoT k -> Constraint) (otys :: LoT k) (r :: *)
+            (x :: Atom l (*)) (igualicos :: Bool) (tys :: LoT l) where
   foldF :: (forall bop. c bop => Algebra' t r bop)
         -> Field x tys -> Field (ElReemplazador t r x) tys
 class UntupleF (t :: k) (x :: Atom l (*)) (r :: *) (s :: *) (igualicos :: Bool) (tys :: LoT l) where
   untupleF :: Field (ElReemplazador t (r, s) x) tys
            -> (Field (ElReemplazador t r x) tys, Field (ElReemplazador t s x) tys)
 
-instance (x ~ ElReemplazador t r x) => FoldF t c r x 'True tys where
+instance (x ~ ElReemplazador t r x) => FoldF t c otys r x 'True tys where
   foldF _ x = x
 instance ( ElReemplazador t r x ~ ElReemplazador t (r,s) x, ElReemplazador t s x ~ ElReemplazador t (r,s) x )
          => UntupleF t x r s 'True tys where
   untupleF x = (x, x)
 
-instance ( FoldK t c r LoT0, c LoT0 )
-         => FoldF t c r (Kon t) 'False LoT0 where
-  foldF recf (Field x) = Field $ foldG @_ @t @c @r @LoT0 recf x
--- For now we do not allow weird recursion
-instance ( FoldK t c r (LoT1 (Interpret a (LoT1 x)))
-         , a ~ ElReemplazador t r a
-         , c (LoT1 (Interpret a (LoT1 x))) )
-         => FoldF t c r (Kon t :@: a) 'False (LoT1 x) where
-  foldF recf (Field x) = Field $ foldG @_ @t @c @r @(LoT1 (Interpret a (LoT1 x))) recf x
-instance ( FoldK t c r (LoT2 (Interpret a (LoT2 x y)) (Interpret b (LoT2 x y)))
-         , a ~ ElReemplazador t r a, b ~ ElReemplazador t r b
-         , c (LoT2 (Interpret a (LoT2 x y)) (Interpret b (LoT2 x y))) )
-         => FoldF t c r (Kon t :@: a :@: b) 'False (LoT2 x y) where
-  foldF recf (Field x) = Field $ foldG @_ @t @c @r @(LoT2 (Interpret a (LoT2 x y)) (Interpret b (LoT2 x y))) recf x
+instance ( ElReemplazador t r x ~ Kon r
+         , p ~ InterpretAll (Args x) tys
+         , Interpret x tys ~ (t :@@: p)
+         , Foldy t c r p
+         , c otys, c otys => c p )
+         => FoldF t c otys r x 'False tys where
+  foldF recf (Field x) = Field $ foldG @_ @t @c @r @(InterpretAll (Args x) tys) recf x
+
+data Atoms (d :: *) (k :: *) where
+  Atom0 :: Atoms d (*)
+  AtomA :: Atom d k -> Atoms d ks -> Atoms d (k -> ks)
+
+type family InterpretAll (xs :: Atoms k l) (tys :: LoT k) :: LoT l where
+  InterpretAll Atom0 tys = LoT0
+  InterpretAll (AtomA a as) tys = Interpret a tys :&&: InterpretAll as tys
+
+type family Args (xs :: Atom d (*)) :: Atoms d l where
+  Args (Kon t) = Atom0
+  Args (Kon t :@: x) = AtomA x Atom0
+  Args (Kon t :@: x :@: y) = AtomA x (AtomA y Atom0)
 
 instance UntupleF t (Kon t) r s 'False tys where
   untupleF (Field (a, b)) = (Field a, Field b)
