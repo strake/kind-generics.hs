@@ -137,40 +137,40 @@ instance UnitB t U1 tys where
 instance TupleB t r s U1 tys where
   tupleB (Field x) (Field a) = Field (x, a)
 
-instance ( FoldF t r x (Igualicos x (ElReemplazador t r x)) tys, FoldB t r y tys )
+instance ( FoldF t r x (ElEncontrador t x) tys, FoldB t r y tys )
          => FoldB t r (Field x :*: y) tys where
   type AlgebraB t r (Field x :*: y) = Field (ElReemplazador t r x) :~>: AlgebraB t r y
   foldB recf (OneArg f) (v :*: w)
     = foldB @_ @_ @t recf
-            (f (foldF @_ @_ @t @r @x @(Igualicos x (ElReemplazador t r x)) recf v)) w
+            (f (foldF @_ @_ @t @r @x @(ElEncontrador t x) recf v)) w
 instance ( UnitB t y tys )
          => UnitB t (Field x :*: y) tys where
   unitB = OneArg (\_ -> unitB @_ @_ @t @y)
 instance ( TupleB t r s y tys
-         , UntupleF t x r s (Igualicos x (ElReemplazador t () x)) tys )
+         , UntupleF t x r s (ElEncontrador t x) tys )
          => TupleB t r s (Field x :*: y) tys where
   tupleB (OneArg x) (OneArg a)
     = OneArg $ \v ->
         let (vx, va)
               = untupleF @_ @_ @t @x @r @s 
-                         @(Igualicos x (ElReemplazador t () x)) @tys
+                         @(ElEncontrador t x) @tys
                          v
         in tupleB @_ @_ @t @r @s @y (x vx) (a va)
 
-instance ( FoldF t r x (Igualicos x (ElReemplazador t r x)) tys )
+instance ( FoldF t r x (ElEncontrador t x) tys )
          => FoldB t r (Field x) tys where
   type AlgebraB t r (Field x) = Field (ElReemplazador t r x) :~>: Field (Kon r)
   foldB recf (OneArg f) v
-    = unField $ f (foldF @_ @_ @t @r @x @(Igualicos x (ElReemplazador t r x)) recf v)
+    = unField $ f (foldF @_ @_ @t @r @x @(ElEncontrador t x) recf v)
 instance UnitB t (Field x) tys where
   unitB = OneArg (\_ -> Field ())
-instance UntupleF t x r s (Igualicos x (ElReemplazador t () x)) tys
+instance UntupleF t x r s (ElEncontrador t x) tys
          => TupleB t r s (Field x) tys where
   tupleB (OneArg x) (OneArg a)
     = OneArg $ \v ->
         let (vx, va)
               = untupleF @_ @_ @t @x @r @s
-                         @(Igualicos x (ElReemplazador t () x)) @tys
+                         @(ElEncontrador t x) @tys
                          v
         in Field (unField $ x vx, unField $ a va)
 
@@ -201,24 +201,30 @@ instance ( Interpret c tys => TupleB t r s f tys )
     = IfImpliesK $ tupleB @_ @_ @t @r @s @f x a
 
 class FoldF (t :: k) (r :: *) (x :: Atom l (*))
-            (igualicos :: Bool) (tys :: LoT l) where
+            (ande :: WhereIsIt) (tys :: LoT l) where
   foldF :: (forall bop. Algebra' t r bop)
         -> Field x tys -> Field (ElReemplazador t r x) tys
-class UntupleF (t :: k) (x :: Atom l (*)) (r :: *) (s :: *) (igualicos :: Bool) (tys :: LoT l) where
+class UntupleF (t :: k) (x :: Atom l (*)) (r :: *) (s :: *) (ande :: WhereIsIt) (tys :: LoT l) where
   untupleF :: Field (ElReemplazador t (r, s) x) tys
            -> (Field (ElReemplazador t r x) tys, Field (ElReemplazador t s x) tys)
 
-instance (x ~ ElReemplazador t r x) => FoldF t r x 'True tys where
+instance (x ~ ElReemplazador t r x) => FoldF t r x 'NotFound tys where
   foldF _ x = x
 instance ( ElReemplazador t r x ~ ElReemplazador t (r,s) x, ElReemplazador t s x ~ ElReemplazador t (r,s) x )
-         => UntupleF t x r s 'True tys where
+         => UntupleF t x r s 'NotFound tys where
   untupleF x = (x, x)
 
 instance ( ElReemplazador t r x ~ Kon r
          , Foldy t r (InterpretAll (Args x) tys)
          , Interpret x tys ~ (t :@@: InterpretAll (Args x) tys)  )
-         => FoldF t r x 'False tys where
+         => FoldF t r x 'TopLevel tys where
   foldF recf (Field x) = Field $ foldG @_ @t @r @(InterpretAll (Args x) tys) recf x
+instance UntupleF t (Kon t) r s 'TopLevel tys where
+  untupleF (Field (a, b)) = (Field a, Field b)
+instance UntupleF t (Kon t :@: a) r s 'TopLevel tys where
+  untupleF (Field (a, b)) = (Field a, Field b)
+instance UntupleF t (Kon t :@: a :@: b) r s 'TopLevel tys where
+  untupleF (Field (a, b)) = (Field a, Field b)
 
 data Atoms (d :: *) (k :: *) where
   Atom0 :: Atoms d (*)
@@ -233,13 +239,6 @@ type family Args (xs :: Atom d (*)) :: Atoms d l where
   Args (Kon t :@: x) = AtomA x Atom0
   Args (Kon t :@: x :@: y) = AtomA x (AtomA y Atom0)
 
-instance UntupleF t (Kon t) r s 'False tys where
-  untupleF (Field (a, b)) = (Field a, Field b)
-instance UntupleF t (Kon t :@: a) r s 'False tys where
-  untupleF (Field (a, b)) = (Field a, Field b)
-instance UntupleF t (Kon t :@: a :@: b) r s 'False tys where
-  untupleF (Field (a, b)) = (Field a, Field b)
-
 type family ElReemplazador (t :: l) (r :: *) (a :: Atom d k) :: Atom d k where
   ElReemplazador t r (Kon t) = Kon r
   ElReemplazador t r (Kon t :@: x) = Kon r
@@ -251,9 +250,23 @@ type family ElReemplazador (t :: l) (r :: *) (a :: Atom d k) :: Atom d k where
   ElReemplazador t r (ForAll x) = ForAll (ElReemplazador t r x)
   ElReemplazador t r (c :=>>: x) = ElReemplazador t r c :=>>: ElReemplazador t r x
 
+{-
 type family Igualicos (a :: k) (b :: k) :: Bool where
   Igualicos a a = 'True
   Igualicos a b = 'False
+-}
+
+data WhereIsIt = NotFound | TopLevel | SomewhereElse
+
+type family ElEncontrador (t :: l) (a :: Atom d k) :: WhereIsIt where
+  ElEncontrador t (Kon t)   = TopLevel
+  ElEncontrador t (f :@: x) = MergeApp (ElEncontrador t f) (ElEncontrador t x)
+  ElEncontrador t x = NotFound
+
+type family MergeApp (fw :: WhereIsIt) (xw :: WhereIsIt) :: WhereIsIt where
+  MergeApp TopLevel anything  = TopLevel
+  MergeApp NotFound NotFound  = NotFound
+  MergeApp some1    some2     = SomewhereElse
 
 instance Functor (Algebra t) where
   fmap f (Alg v r) = Alg v (f . r)
