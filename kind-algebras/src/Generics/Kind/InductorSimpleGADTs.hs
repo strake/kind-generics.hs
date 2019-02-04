@@ -79,14 +79,14 @@ data Drop (r :: LoT k -> *) (tys :: LoT (d -> k)) where
   Drop :: { unDrop :: r tys } -> Drop r (ty :&&: tys)
 -}
 
-idAlgVec :: Algebra Vec TwoArgs Vec'
-idAlgVec = alg $ IfImpliesK (Result (Vec' VNil)) :*: ForAllK (IfImpliesK (OneArg (\(Field x) -> OneArg (\(Field (Vec' xs)) -> Result (Vec' (VCons x xs)) ))))
+idAlgVec :: Algebra Vec TwoArgs Vec
+idAlgVec = alg $ IfImpliesK (Result VNil) :*: ForAllK (IfImpliesK (OneArg (\(Field x) -> OneArg (\(Field xs) -> Result (VCons x xs) ))))
 
-toListAlg :: TwoArgs tys => Algebra' Vec List tys
-toListAlg = IfImpliesK (Result (List [])) :*: ForAllK (IfImpliesK (OneArg (\(Field x) -> OneArg (\(Field (List xs)) -> Result (List (x : xs)) ))))
+toListAlg :: Algebra Vec TwoArgs List
+toListAlg = alg $ IfImpliesK (Result (List [])) :*: ForAllK (IfImpliesK (OneArg (\(Field x) -> OneArg (\(Field (List xs)) -> Result (List (x : xs)) ))))
 
 vecToList :: Vec n a -> [a]
-vecToList v = unList $ foldG @_ @Vec @TwoArgs @_ @(LoT2 _ _) toListAlg v
+vecToList v = unList $ foldAlgebra @_ @Vec @(LoT2 _ _) toListAlg v
 
 class Foldy (t :: k) (c :: LoT k -> Constraint) (r :: k) (tys :: LoT k) where
   foldG :: c tys => (forall bop. c bop => Algebra' t r bop) -> t :@@: tys -> r :@@: tys
