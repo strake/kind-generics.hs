@@ -30,6 +30,13 @@ instance GenericK (Maybe a) LoT0 where
   fromK = fromRepK
   toK   = toRepK
 
+instance GenericK [] (a ':&&: 'LoT0) where
+  type RepK [] = U1 :+: Field Var0 :*: Field ([] :$: Var0)
+instance GenericK [a] LoT0 where
+  type RepK [a] = SubstRep (RepK []) a
+  fromK = fromRepK
+  toK   = toRepK
+
 instance GenericK Either (a ':&&: b ':&&: LoT0) where
   type RepK Either = Field Var0 :+: Field Var1
 instance GenericK (Either a) (b ':&&: LoT0) where

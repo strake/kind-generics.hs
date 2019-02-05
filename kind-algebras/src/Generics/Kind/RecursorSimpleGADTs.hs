@@ -39,9 +39,6 @@ instance Foldy Maybe r (a :&&: LoT0)
 lengthAlg :: Algebra Maybe Int
 lengthAlg = alg (Field 0  :*: OneArg (\_ -> Field 1))
 
--- sumAlg :: Algebra Maybe Int
--- sumAlg = alg (Field 0  :*: OneArg (\(Field n) -> Field n))
-
 applyLength = foldAlgebra @_ @Maybe @_ @_ @(Int :&&: LoT0) lengthAlg (Just 2)
 
 maybeAlg :: Algebra Maybe Bool
@@ -49,6 +46,14 @@ maybeAlg = alg (Field False :*: OneArg (\_ -> Field True))
 
 notMaybeAlg :: Algebra Maybe Bool
 notMaybeAlg = not <$> maybeAlg
+
+instance Foldy [] r (a :&&: LoT0)
+
+lengthAlgList :: Algebra [] Int
+lengthAlgList = alg (Field 1 :*: OneArg (\_ -> OneArg (\(Field n) -> Field(n+1))))
+
+applyLengthList :: forall a. [a] -> Int
+applyLengthList = foldAlgebra @_ @[] @_ @_ @(a :&&: LoT0) lengthAlgList
 
 data Vec (n :: Nat) a where
   VNil   ::                   Vec Z     a
@@ -64,12 +69,13 @@ instance GenericK Vec (n :&&: a :&&: LoT0) where
   toK (L1 (SuchThat U1)) = VNil
   toK (R1 (Exists (SuchThat (Field x :*: Field xs)))) = VCons x xs
 
+instance Foldy Vec r (a :&&: b :&&: LoT0)
+
 lengthAlgVec :: Algebra Vec Int
 lengthAlgVec = alg (IfImpliesK (Field 1) :*: ForAllK (IfImpliesK (OneArg (\_ -> OneArg (\(Field n) -> Field(n+1))))))
 
-instance Foldy Vec r (a :&&: b :&&: LoT0)
-
-applyLengthVec = foldAlgebra @_ @Vec @_ @_ @((S Z) :&&: Int :&&: LoT0) lengthAlgVec (VCons 2 VNil)
+applyLengthVec :: forall n a. Vec n a -> Int
+applyLengthVec = foldAlgebra @_ @Vec @_ @_ @(n :&&: a :&&: LoT0) lengthAlgVec
 
 -- sumAlgVec :: Algebra Vec Int
 -- sumAlgVec = alg (IfImpliesK (Field 0) :*: ForAllK (IfImpliesK (OneArg (\(Field n) -> OneArg (\(Field r) -> Field(n+r))))))
