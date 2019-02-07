@@ -27,11 +27,13 @@ import qualified Control.Category as Cat
 import qualified Control.Arrow as Arrow
 
 data Algebra (t :: k) (r :: *) where
-  Alg :: (forall tys. Algebra' t x tys)
+  Alg :: (forall tys. AlgebraB t x (RepK t) tys)
       -> (x -> r)
       -> Algebra t r
 
-alg :: (forall tys. Algebra' t r tys) -> Algebra t r
+type AlgebraF t r = forall tys. AlgebraB t r (RepK t) tys
+
+alg :: AlgebraF t r -> Algebra t r
 alg recf = Alg recf id
 
 instance Foldy Maybe r (a :&&: LoT0)
@@ -83,7 +85,6 @@ applyLengthVec = foldAlgebra @_ @Vec @_ @_ @(n :&&: a :&&: LoT0) lengthAlgVec
 twiceLengthAlgVec :: Algebra Vec Int
 twiceLengthAlgVec = (+) <$> lengthAlgVec <*> lengthAlgVec
 
-type Algebra' t r = AlgebraB t r (RepK t)
 type FoldK t r tys = (GenericK t tys, FoldB t r (RepK t) tys)
 
 foldAlgebra :: forall k (t :: k) r f tys.
@@ -94,15 +95,15 @@ foldAlgebra (Alg v (r :: x -> r)) x = r (foldG @k @t @x @tys v x)
 -- In the simple recursor, f has kind LoT k -> * (same as t)
 
 class Foldy (t :: k) (r :: *) (tys :: LoT k) where
-  foldG :: (forall bop. Algebra' t r bop) -> t :@@: tys -> r
+  foldG :: AlgebraF t r -> t :@@: tys -> r
   default foldG :: (GenericK t tys, FoldB t r (RepK t) tys)
-                => (forall bop. Algebra' t r bop) -> t :@@: tys -> r
+                => AlgebraF t r -> t :@@: tys -> r
   foldG a x = foldB @k @k @t @r @(RepK t) @tys a a (fromK @k @t x)
 
 class FoldB (t :: k) (r :: *)
             (f :: LoT l -> *) (tys :: LoT l) where
   type AlgebraB t r f :: LoT l -> *
-  foldB :: (forall bop. Algebra' t r bop)
+  foldB :: AlgebraF t r
         -> AlgebraB t r f tys -> f tys -> r
 class UnitB (t :: k) (f :: LoT l -> *) (tys :: LoT l) where
   unitB :: AlgebraB t () f tys
@@ -208,7 +209,7 @@ instance ( Interpret c tys => TupleB t r s f tys )
 
 class FoldF (t :: k) (r :: *) (x :: Atom l (*))
             (ande :: WhereIsIt) (tys :: LoT l) where
-  foldF :: (forall bop. Algebra' t r bop)
+  foldF :: AlgebraF t r
         -> Field x tys -> Field (ElReemplazador t r x) tys
 class UntupleF (t :: k) (x :: Atom l (*)) (r :: *) (s :: *) (ande :: WhereIsIt) (tys :: LoT l) where
   untupleF :: Field (ElReemplazador t (r, s) x) tys
