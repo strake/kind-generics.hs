@@ -206,18 +206,18 @@ instance UntupleF t x r s (ElEncontrador t x) tys
         in (x vx, a va)
 
 
-newtype AlgForAll (t :: k) (r :: *) (f :: LoT (d -> l) -> *) (tys :: LoT l) where
-  AlgForAll :: (forall ty. Proxy ty -> AlgebraB t r f (ty :&&: tys)) -> AlgForAll t r f tys
+newtype AlgForAll d (t :: k) (r :: *) (f :: LoT (d -> l) -> *) (tys :: LoT l) where
+  AlgForAll :: (forall (ty :: d). Proxy ty -> AlgebraB t r f (ty :&&: tys)) -> AlgForAll d t r f tys
 
-algForAll :: (forall ty. AlgebraB t r f (ty :&&: tys)) -> AlgForAll t r f tys
+algForAll :: (forall (ty :: k). AlgebraB t r f (ty :&&: tys)) -> AlgForAll k t r f tys
 algForAll f = AlgForAll (\(p :: Proxy ty) -> f @ty)
 
-newtype When (c :: Constraint) (x :: *) where
-  When :: (c => x) -> When c x
+newtype When (t :: k) (r :: *) (c :: Atom l Constraint) (f :: LoT l -> *) (tys :: LoT l) where
+  When :: (Interpret c tys => AlgebraB t r f tys) -> When t r c f tys
 
 instance ( forall ty. FoldB t c r f (ty :&&: tys) )
          => FoldB t c r (Exists k f) tys where
-  type AlgebraB t r (Exists k f) tys = AlgForAll t r f tys
+  type AlgebraB t r (Exists k f) tys = AlgForAll k t r f tys
   foldB recf (AlgForAll f) (Exists (v :: f (ty :&&: tys)))
     = foldB @_ @_ @t @c recf (f (Proxy :: Proxy ty)) v
 instance ( forall ty. UnitB t f (ty :&&: tys) )
@@ -230,7 +230,7 @@ instance ( forall ty. TupleB t r s f (ty :&&: tys) )
 
 instance ( Interpret d tys => FoldB t c r f tys )
          => FoldB t c r (d :=>: f) tys where
-  type AlgebraB t r (d :=>: f) tys = When (Interpret d tys) (AlgebraB t r f tys)
+  type AlgebraB t r (d :=>: f) tys = When t r d f tys
   foldB recf (When f) (SuchThat v)
     = foldB @_ @_ @t @c recf f v
 instance ( Interpret c tys => UnitB t f tys )
