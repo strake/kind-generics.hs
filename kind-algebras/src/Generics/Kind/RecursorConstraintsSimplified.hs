@@ -78,10 +78,10 @@ instance GenericK Vec (n :&&: a :&&: LoT0) where
 
 instance (forall n. c (n :&&: b :&&: LoT0)) => Foldy Vec c r (a :&&: b :&&: LoT0) where
 
-lengthAlgVec :: Algebra Vec Trivial Integer
+lengthAlgVec :: Algebra Vec c Integer
 lengthAlgVec = alg $ (When 1) :**: (algForAll $ When $ \_ n -> n + 1)
 
-twiceLengthAlgVec :: Algebra Vec Trivial Integer
+twiceLengthAlgVec :: Algebra Vec c Integer
 twiceLengthAlgVec = (+) <$> lengthAlgVec <*> lengthAlgVec
 
 sumAlgVec :: Num a => Algebra Vec (VS VZ :==: a) a
@@ -91,7 +91,7 @@ applySumAlgVec :: Float
 applySumAlgVec = foldAlgebra @_ @Vec @(LoT2 (S (S Z)) Float) avgAlgVec ((VCons 1 (VCons 2 VNil)) :: Vec (S (S Z)) Float)
 
 avgAlgVec :: Fractional a => Algebra Vec (VS VZ :==: a) a
-avgAlgVec = (/) <$> sumAlgVec <*> upgrade (fromInteger <$> lengthAlgVec)
+avgAlgVec = (/) <$> sumAlgVec <*> (fromInteger <$> lengthAlgVec)
 
 type AlgebraF t c r = forall bop. (c bop => Proxy bop -> AlgebraB t r (RepK t) bop)
 type FoldK t c r tys = (GenericK t tys, FoldB t c r (RepK t) tys)
