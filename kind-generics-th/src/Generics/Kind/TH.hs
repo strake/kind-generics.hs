@@ -1,6 +1,7 @@
 {-# language ExplicitNamespaces #-}
 {-# language MultiWayIf #-}
 {-# language TemplateHaskellQuotes #-}
+{-# language CPP #-}
 
 -- | Main module of @kind-generics-th@.
 -- Please refer to the @README@ file for documentation on how to use this package.
@@ -38,7 +39,11 @@ import Language.Haskell.TH.Datatype as THAbs
 deriveGenericK :: Name -> Q [Dec]
 deriveGenericK n = do
   DatatypeInfo{ datatypeName    = dataName
+#if MIN_VERSION_th_abstraction(0,3,0)
+              , datatypeInstTypes = univVars
+#else
               , datatypeVars    = univVars
+#endif
               , datatypeVariant = variant
               , datatypeCons    = cons
               } <- reifyDatatype n
