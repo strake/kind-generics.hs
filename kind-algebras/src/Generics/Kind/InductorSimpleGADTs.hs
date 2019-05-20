@@ -32,7 +32,7 @@ data Vec (n :: Nat) a where
   VNil   ::                   Vec Z     a
   VCons  ::  a -> Vec n a ->  Vec (S n) a
 
-instance GenericK Vec (n :&&: a :&&: LoT0) where
+instance GenericK Vec where
   type RepK Vec  =    (Var VZ :~: Kon Z) :=>: U1
                :+:  Exists Nat (  (Var (VS VZ) :~: (Kon S :@: Var VZ))
                                   :=>:  (    Field (Var (VS (VS VZ)))
@@ -90,7 +90,7 @@ vecToList v = unList $ foldAlgebra @_ @Vec @(LoT2 _ _) toListAlg v
 
 class Foldy (t :: k) (c :: LoT k -> Constraint) (r :: k) (tys :: LoT k) where
   foldG :: c tys => (forall bop. c bop => Algebra' t r bop) -> t :@@: tys -> r :@@: tys
-  default foldG :: (GenericK t tys, FoldB t c r (RepK t) Z tys, c tys)
+  default foldG :: (GenericK t, FoldB t c r (RepK t) Z tys, c tys)
                 => (forall bop. c bop => Algebra' t r bop) -> t :@@: tys -> r :@@: tys
   foldG a x = theResult $ foldB @k @k @t @c @r @(RepK t) @Z @tys a a (fromK @k @t x)
 

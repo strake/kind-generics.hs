@@ -18,8 +18,8 @@ import Data.Proxy
 import Data.Kind
 import Generics.Kind
 
-fmapDefaultOne :: (GenericK f (LoT1 a),
-                   GenericK f (LoT1 b),
+fmapDefaultOne :: (GenericK f,
+                   GenericK f,
                    GFunctorOne (RepK f),
                    Reqs (RepK f) a b)
                 => (a -> b) -> f a -> f b

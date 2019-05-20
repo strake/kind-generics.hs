@@ -83,7 +83,7 @@ main =
               ]
   in insts `seq` pure ()
 
-isGenericK :: forall k (f :: k) (x :: LoT k). GenericK f x => ()
+isGenericK :: forall k (f :: k) (x :: LoT k). GenericK f => ()
 isGenericK = fromK @k @f @x `seq` ()
 
 ----------------

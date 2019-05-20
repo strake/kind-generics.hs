@@ -18,19 +18,19 @@ import Generics.Kind
 import GHC.TypeLits
 
 fmapDefaultPos :: forall v f as bs.
-                  (GenericK f as, GenericK f bs,
+                  (GenericK f, GenericK f,
                    GFunctorPos (RepK f) v as bs)
                => (Interpret (Var v) as -> Interpret (Var v) bs)
                -> f :@@: as -> f :@@: bs
 fmapDefaultPos f = toK @_ @f @bs . gfmapp @_ @(RepK f) @v @as @bs f . fromK @_ @f @as
 
-fmapDefault :: forall f a b. (GenericK f (LoT1 a), GenericK f (LoT1 b),
+fmapDefault :: forall f a b. (GenericK f, GenericK f,
                GFunctorPos (RepK f) VZ (LoT1 a) (LoT1 b))
             => (a -> b) -> f a -> f b
 fmapDefault = fmapDefaultPos @VZ @f @(LoT1 a) @(LoT1 b)
 
 bimapDefault :: forall f a c b d.
-                (GenericK f (LoT2 a b), GenericK f (LoT2 a d), GenericK f (LoT2 c d),
+                (GenericK f, GenericK f, GenericK f,
                  GFunctorPos (RepK f) VZ      (LoT2 a d) (LoT2 c d),
                  GFunctorPos (RepK f) (VS VZ) (LoT2 a b) (LoT2 a d))
              => (a -> c) -> (b -> d) -> f a b -> f c d

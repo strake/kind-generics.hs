@@ -66,7 +66,7 @@ data Vec (n :: Nat) a where
   VNil   ::                   Vec Z     a
   VCons  ::  a -> Vec n a ->  Vec (S n) a
 
-instance GenericK Vec (n :&&: a :&&: LoT0) where
+instance GenericK Vec where
   type RepK Vec  =    (Var VZ :~: Kon Z) :=>: U1
                :+:  Exists Nat (  (Var (VS VZ) :~: (Kon S :@: Var VZ))
                                   :=>:  (    Field (Var (VS (VS VZ)))
@@ -94,7 +94,7 @@ avgAlgVec :: Fractional a => Algebra Vec (VS VZ :==: a) a
 avgAlgVec = (/) <$> sumAlgVec <*> (fromInteger <$> lengthAlgVec)
 
 type AlgebraF t c r = forall bop. (c bop => Proxy bop -> AlgebraB t r (RepK t) bop)
-type FoldK t c r tys = (GenericK t tys, FoldB t c r (RepK t) tys)
+type FoldK t c r tys = (GenericK t, FoldB t c r (RepK t) tys)
 
 data Algebra (t :: k) (c :: LoT k -> Constraint) (r :: *) where
   Alg :: Proxy x
@@ -115,7 +115,7 @@ foldAlgebra (Alg (Proxy :: Proxy x) v r) x = r (foldG @k @t @c @x @tys v x)
 
 class Foldy (t :: k) (c :: LoT k -> Constraint) (r :: *) (tys :: LoT k) where
   foldG :: c tys => (AlgebraF t c r) -> t :@@: tys -> r
-  default foldG :: (GenericK t tys, FoldB t c r (RepK t) tys, c tys)
+  default foldG :: (GenericK t, FoldB t c r (RepK t) tys, c tys)
                 => (AlgebraF t c r) -> t :@@: tys -> r
   foldG a x = foldB @_ @_ @t @c @r @(RepK t) @tys a (a (Proxy :: Proxy tys)) (fromK @k @t x)
 

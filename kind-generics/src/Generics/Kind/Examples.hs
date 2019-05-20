@@ -23,27 +23,27 @@ import Generics.Kind
 
 -- Obtained from Generic
 
-instance GenericK Maybe p where
+instance GenericK Maybe where
   type RepK Maybe = U1 :+: Field Var0
-instance GenericK (Maybe a) p where
+instance GenericK (Maybe a) where
   type RepK (Maybe a) = SubstRep (RepK Maybe) a
   fromK = fromRepK
   toK   = toRepK
 
-instance GenericK [] p where
+instance GenericK [] where
   type RepK [] = U1 :+: Field Var0 :*: Field ([] :$: Var0)
-instance GenericK [a] p where
+instance GenericK [a] where
   type RepK [a] = SubstRep (RepK []) a
   fromK = fromRepK
   toK   = toRepK
 
-instance GenericK Either p where
+instance GenericK Either where
   type RepK Either = Field Var0 :+: Field Var1
-instance GenericK (Either a) p where
+instance GenericK (Either a) where
   type RepK (Either a) = SubstRep (RepK Either) a
   fromK = fromRepK
   toK   = toRepK
-instance GenericK (Either a b) p where
+instance GenericK (Either a b) where
   type RepK (Either a b) = SubstRep (RepK (Either a)) b
   fromK = fromRepK
   toK   = toRepK
@@ -53,9 +53,9 @@ instance GenericK (Either a b) p where
 data Tree a = Branch (Tree a) (Tree a) | Leaf a
             deriving Generic
 
-instance GenericK Tree p where
+instance GenericK Tree where
   type RepK Tree = Field (Tree :$: Var0) :*: Field (Tree :$: Var0) :+: Field Var0
-instance GenericK (Tree a) p where
+instance GenericK (Tree a) where
   type RepK (Tree a) = SubstRep (RepK Tree) a
   fromK = fromRepK
   toK   = toRepK
@@ -66,17 +66,17 @@ data family HappyFamily t
 data instance HappyFamily (Maybe a) = HFM Bool
 data instance HappyFamily [a]       = HFL a
 
-instance GenericK HappyFamily p where
+instance GenericK HappyFamily where
   type RepK HappyFamily = TypeError (Text "Cannot describe this family uniformly")
   fromK = undefined
   toK   = undefined
 
-instance GenericK (HappyFamily (Maybe a)) p where
+instance GenericK (HappyFamily (Maybe a)) where
   type RepK (HappyFamily (Maybe a)) = Field (Kon Bool)
   fromK (HFM   x) = Field x
   toK   (Field x) = HFM   x
 
-instance GenericK (HappyFamily [a]) p where
+instance GenericK (HappyFamily [a]) where
   type RepK (HappyFamily [a]) = Field (Kon a)
   fromK (HFL   x) = Field x
   toK   (Field x) = HFL   x
@@ -86,19 +86,19 @@ instance GenericK (HappyFamily [a]) p where
 data SimpleIndex :: * -> * -> * where
   MkSimpleIndex :: [a] -> SimpleIndex [a] b
 
-instance GenericK SimpleIndex p where
+instance GenericK SimpleIndex where
   type RepK SimpleIndex
     = Exists (*) ((Var1 :~: ([] :$: Var0)) :=>: Field ([] :$: Var0))
   fromK (MkSimpleIndex x) = Exists (SuchThat (Field x))
   toK (Exists (SuchThat (Field x))) = (MkSimpleIndex x)
 
-instance GenericK (SimpleIndex a) p where
+instance GenericK (SimpleIndex a) where
   type RepK (SimpleIndex a)
     = Exists (*) ((Kon a :~: ([] :$: Var0)) :=>: Field ([] :$: Var0))
   fromK (MkSimpleIndex x) = Exists (SuchThat (Field x))
   toK (Exists (SuchThat (Field x))) = (MkSimpleIndex x)
 
-instance GenericK (SimpleIndex a b) p where
+instance GenericK (SimpleIndex a b) where
   type RepK (SimpleIndex a b)
     = Exists (*) ((Kon a :~: ([] :$: Var0)) :=>: Field ([] :$: Var0))
   fromK (MkSimpleIndex x) = Exists (SuchThat (Field x))
@@ -108,7 +108,7 @@ data WeirdTree a where
   WeirdBranch :: WeirdTree a -> WeirdTree a -> WeirdTree a 
   WeirdLeaf   :: Show a => t -> a -> WeirdTree a
 
-instance GenericK WeirdTree p where
+instance GenericK WeirdTree where
   type RepK WeirdTree
     = Field (WeirdTree :$: Var0) :*: Field (WeirdTree :$: Var0)
       :+: Exists (*) ((Show :$: Var1) :=>: (Field Var0 :*: Field Var1))
@@ -125,7 +125,7 @@ data WeirdTreeR a where
   WeirdBranchR :: WeirdTreeR a -> WeirdTreeR a -> WeirdTreeR a 
   WeirdLeafR   :: (Show a, Eq t, Typeable t) => t -> a -> WeirdTreeR a
 
-instance GenericK WeirdTreeR p where
+instance GenericK WeirdTreeR where
   type RepK WeirdTreeR
     = Field (WeirdTreeR :$: Var0) :*: Field (WeirdTreeR :$: Var0)
       :+: Exists (*) (((Show :$: Var1) :&: (Eq :$: Var0) :&: (Typeable :$: Var0))
@@ -137,7 +137,7 @@ instance GenericK WeirdTreeR p where
   toK (L1 (Field l :*: Field r)) = WeirdBranchR l r
   toK (R1 (Exists (SuchThat (Field a :*: Field x)))) = WeirdLeafR a x
 
-instance GenericK (WeirdTreeR a) p where
+instance GenericK (WeirdTreeR a) where
   type RepK (WeirdTreeR a)
     = Field (Kon (WeirdTreeR a)) :*: Field (Kon (WeirdTreeR a))
     :+: Exists (*) ((Kon (Show a) :&: (Eq :$: Var0) :&: (Typeable :$: Var0))
@@ -159,7 +159,7 @@ data T (a :: k) =
   forall (a' :: Type). (k ~ Type, a ~~ a') => MkT (Maybe a') 
 -}
 
-instance GenericK (T :: k -> *) p where
+instance GenericK (T :: k -> *) where
   type RepK (T :: k -> *) =
     Exists (*) ((Kon (k ~ (*)) :&: (Var0 :~~: Var1)) :=>: Field (Maybe :$: Var0))
   fromK (MkT x) = Exists (SuchThat (Field x))
@@ -168,7 +168,7 @@ instance GenericK (T :: k -> *) p where
 data P k (a :: k) where
   P :: forall k (a :: k). P k a
 
-instance GenericK (P k) p where
+instance GenericK (P k) where
   type RepK (P k) = U1
   fromK P  = U1
   toK   U1 = P
@@ -181,12 +181,12 @@ instance GenericK P (k :&&: a :&&: LoT0) where
 data P' j (a :: k) where
   P' :: forall k (a :: k). P' k a
 
-instance GenericK (P' j :: k -> *) p where
+instance GenericK (P' j :: k -> *) where
   type RepK (P' j :: k -> *) = (Kon k :~: Kon j) :=>: U1
   fromK P' = SuchThat U1
   toK (SuchThat U1) = P'
 
-instance GenericK (P' :: * -> k -> *) p where
+instance GenericK (P' :: * -> k -> *) where
   type RepK (P' :: * -> k -> *) = (Kon k :~: Var0) :=>: U1
   fromK P' = SuchThat U1
   toK (SuchThat U1) = P'
@@ -195,14 +195,14 @@ instance GenericK (P' :: * -> k -> *) p where
 
 data Ranky = MkRanky (forall a. a -> a)
 
-instance GenericK Ranky p where
+instance GenericK Ranky where
   type RepK Ranky = Field (ForAll ((->) :$: Var0 :@: Var0))
   fromK (MkRanky x) = Field (ForAllI x)
   toK (Field (ForAllI x)) = MkRanky x
 
 newtype Ranky2 b = MkRanky2 ((forall a. a -> a) -> b)
 
-instance GenericK Ranky2 p where
+instance GenericK Ranky2 where
   type RepK Ranky2 = Field ((->) :$: ForAll ((->) :$: Var0 :@: Var0) :@: Var0)
   fromK (MkRanky2 f) = Field (\(ForAllI x) -> f x)
   toK (Field f) = MkRanky2 (\x -> f (ForAllI x))
@@ -210,7 +210,7 @@ instance GenericK Ranky2 p where
 data Shower a where
   MkShower :: (Show a => a -> String) -> Shower a
 
-instance GenericK Shower p where
+instance GenericK Shower where
   type RepK Shower = Field ((Show :$: Var0) :=>>: ((->) :$: Var0 :@: Kon String))
   fromK (MkShower f) = Field (SuchThatI f)
   toK (Field (SuchThatI f)) = MkShower f

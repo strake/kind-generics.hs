@@ -61,7 +61,7 @@ data Vec (n :: Nat) a where
   VNil   ::                   Vec Z     a
   VCons  ::  a -> Vec n a ->  Vec (S n) a
 
-instance GenericK Vec (n :&&: a :&&: LoT0) where
+instance GenericK Vec where
   type RepK Vec  =    (Var VZ :~: Kon Z) :=>: U1
                :+:  Exists Nat (  (Var (VS VZ) :~: (Kon S :@: Var VZ))
                                   :=>:  (    Field (Var (VS (VS VZ)))
@@ -85,7 +85,7 @@ applyLengthVec = foldAlgebra @_ @Vec @_ @_ @(n :&&: a :&&: LoT0) lengthAlgVec
 twiceLengthAlgVec :: Algebra Vec Int
 twiceLengthAlgVec = (+) <$> lengthAlgVec <*> lengthAlgVec
 
-type FoldK t r tys = (GenericK t tys, FoldB t r (RepK t) tys)
+type FoldK t r tys = (GenericK t, FoldB t r (RepK t) tys)
 
 foldAlgebra :: forall k (t :: k) r f tys.
                (forall p. Foldy t p tys)
@@ -96,7 +96,7 @@ foldAlgebra (Alg v (r :: x -> r)) x = r (foldG @k @t @x @tys v x)
 
 class Foldy (t :: k) (r :: *) (tys :: LoT k) where
   foldG :: AlgebraF t r -> t :@@: tys -> r
-  default foldG :: (GenericK t tys, FoldB t r (RepK t) tys)
+  default foldG :: (GenericK t, FoldB t r (RepK t) tys)
                 => AlgebraF t r -> t :@@: tys -> r
   foldG a x = foldB @k @k @t @r @(RepK t) @tys a a (fromK @k @t x)
 

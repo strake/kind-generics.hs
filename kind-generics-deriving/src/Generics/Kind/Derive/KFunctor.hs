@@ -21,12 +21,12 @@ import Data.Proxy
 
 import Generics.Kind
 
-kfmapDefault :: forall (f :: k) v as bs. (GenericK f as, GenericK f bs, GFunctor (RepK f) v as bs)
+kfmapDefault :: forall (f :: k) v as bs. (GenericK f, GenericK f, GFunctor (RepK f) v as bs)
              => Mappings v as bs -> f :@@: as -> f :@@: bs
 kfmapDefault v = toK @k @f @bs . gfmap v . fromK @k @f @as
 
 fmapDefault' :: forall (f :: * -> *) a b.
-                (GenericK f (a ':&&: 'LoT0), GenericK f (b ':&&: 'LoT0),
+                (GenericK f, GenericK f,
                  GFunctor (RepK f) '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0))
               => (a -> b) -> f a -> f b
 fmapDefault' f = kfmapDefault (f :^: M0 :: Mappings '[ 'Co ] (a ':&&: 'LoT0) (b ':&&: 'LoT0))
