@@ -7,6 +7,7 @@
 {-# language PatternSynonyms #-}
 {-# language UndecidableInstances   #-}
 {-# language FlexibleContexts       #-}
+{-# language FlexibleInstances      #-}
 {-# language ScopedTypeVariables    #-}
 {-# language MultiParamTypeClasses  #-}
 {-# language FunctionalDependencies #-}
@@ -63,9 +64,9 @@ data SLoT (l :: LoT k) where
 
 class SForLoT (l :: LoT k) where
   slot :: SLoT l
-instance SForLoT LoT0 where
+instance (l ~ LoT0) => SForLoT (l :: LoT (*)) where
   slot = SLoT0
-instance SForLoT ts => SForLoT (t :&&: ts) where
+instance (l ~ (t :&&: ts), SForLoT ts) => SForLoT (l :: LoT (k -> k')) where
   slot = SLoTA Proxy slot
 
 -- | Split a type @t@ until the constructor @f@ is found.
