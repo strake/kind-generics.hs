@@ -85,9 +85,11 @@ deriving instance (forall t. Show (f (t ':&&: x))) => Show (Exists k f x)
 -- mention the type constructor along with a list of types of the corresponding
 -- length. For example:
 --
--- > instance GenericK Int    LoT0
--- > instance GenericK []     (a :&&: LoT0)
--- > instance GenericK Either (a :&&: b :&&: LoT0)
+-- > instance GenericK Int          p
+-- > instance GenericK []           p
+-- > instance GenericK Either       p
+-- > instance GenericK (Either a)   p
+-- > instance GenericK (Either a b) p
 class GenericK (f :: k) (x :: LoT k) where
   type RepK f :: LoT k -> *
 
