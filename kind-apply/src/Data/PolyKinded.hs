@@ -15,7 +15,7 @@
 module Data.PolyKinded (
   -- * Lists of types and application
   LoT(..), (:@@:), LoT1, LoT2
-, HeadLoT, TailLoT
+, HeadLoT, TailLoT, SpineLoT
   -- ** Singleton for list of types
 , SLoT(..), SForLoT(..), Proxy(..)
   -- * Splitting types
@@ -57,6 +57,17 @@ type family HeadLoT (tys :: LoT (k -> k')) :: k where
 -- Bool :&&: LoT0 :: LoT (Type -> Type)
 type family TailLoT (tys :: LoT (k -> k')) :: LoT k' where
   TailLoT (_ :&&: as) = as
+
+-- | Construct the spine of a list of types whose length is known.
+--
+-- It can be useful to introduce unification variables for lists of types which
+-- will be fully instantiated during constraint resolution.
+-- A constraint @p ~ SpineLoT p@ will thus instantiate the spine of @p@.
+--
+-- On concrete lists, this is the identity function.
+type family SpineLoT (ts :: LoT k) :: LoT k where
+  SpineLoT (ts :: LoT (k -> k')) = HeadLoT ts :&&: SpineLoT (TailLoT ts)
+  SpineLoT (ts :: LoT (*)) = LoT0
 
 data SLoT (l :: LoT k) where
   SLoT0 :: SLoT LoT0
