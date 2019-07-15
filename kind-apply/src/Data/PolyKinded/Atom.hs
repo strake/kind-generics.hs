@@ -47,8 +47,8 @@ type a :~:  b = 'Kon (~) ':@: a ':@: b
 type a :~~: b = 'Kon (~~) ':@: a ':@: b
 
 type family InterpretVar (t :: TyVar d k) (tys :: LoT d) :: k where
-  InterpretVar 'VZ     (t ':&&: ts) = t
-  InterpretVar ('VS v) (t ':&&: ts) = InterpretVar v ts
+  InterpretVar 'VZ     tys = HeadLoT tys
+  InterpretVar ('VS v) tys = InterpretVar v (TailLoT tys)
 
 type family Interpret (t :: Atom d k) (tys :: LoT d) :: k where
   Interpret ('Var v)     tys = InterpretVar v tys

@@ -48,7 +48,7 @@ import Unbound.Generics.LocallyNameless.Subst
 import Unbound.Generics.PermM
 import Generics.Kind
 
-type GenericAlpha a = (GenericK a LoT0, GAlphaK (RepK a) LoT0 LoT0)
+type GenericAlpha a = (GenericK a, GAlphaK (RepK a) LoT0 LoT0)
 
 aeqDefK :: forall a. (GenericAlpha a)
         => AlphaCtx -> a -> a -> Bool
@@ -380,7 +380,7 @@ instance (forall (t1 :: k) (t2 :: k). GAlphaK f (t1 :&&: a) (t2 :&&: b))
 
   gacompareK ctx (Exists f1) (Exists f2) = gacompareK ctx f1 f2
 
-gsubstDefK :: forall a b. (GenericK a LoT0, GSubstK b (RepK a) LoT0, Subst b a)
+gsubstDefK :: forall a b. (GenericK a, GSubstK b (RepK a) LoT0, Subst b a)
            => Name b -> b -> a -> a
 gsubstDefK n u x =
   if (isFreeName n)
@@ -391,7 +391,7 @@ gsubstDefK n u x =
       _ -> toK @_ @a @LoT0 $ gsubstK n u (fromK @_ @a @LoT0 x)
   else error $ "Cannot substitute for bound variable " ++ show n
 
-gsubstsDefK :: forall a b. (GenericK a LoT0, GSubstK b (RepK a) LoT0, Subst b a)
+gsubstsDefK :: forall a b. (GenericK a, GSubstK b (RepK a) LoT0, Subst b a)
             => [(Name b, b)] -> a -> a
 gsubstsDefK ss x
   | all (isFreeName . fst) ss =

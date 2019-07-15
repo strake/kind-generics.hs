@@ -18,14 +18,14 @@ import Generics.Kind
 import GHC.TypeLits
 
 traverseDefaultPos :: forall v f as bs g.
-                      (GenericK f as, GenericK f bs,
+                      (GenericK f, GenericK f,
                        GTraversable (RepK f) v as bs,
                        Applicative g)
                    => (Interpret (Var v) as -> g (Interpret (Var v) bs))
                    -> f :@@: as -> g (f :@@: bs)
 traverseDefaultPos f = fmap (toK @_ @f @bs) . gtraverse @_ @(RepK f) @v @as @bs f . fromK @_ @f @as
 
-traverseDefault :: forall f a b g. (GenericK f (LoT1 a), GenericK f (LoT1 b),
+traverseDefault :: forall f a b g. (GenericK f, GenericK f,
                    GTraversable (RepK f) VZ (LoT1 a) (LoT1 b), Applicative g)
                 => (a -> g b) -> f a -> g (f b)
 traverseDefault = traverseDefaultPos @VZ @f @(LoT1 a) @(LoT1 b)

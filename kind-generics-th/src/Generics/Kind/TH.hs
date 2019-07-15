@@ -81,9 +81,7 @@ deriveGenericK n = do
                          (ConT ''Kind.Type) (map typeKind argsToDrop)
             dataApp = pure $ SigT (foldr (flip AppT) (ConT dataName) argsToKeep) kind
         instanceD (pure [])
-                  (conT ''GenericK `appT` dataApp `appT`
-                        foldr (\x y -> infixT x '(:&&:) y)
-                              (promotedT 'LoT0) (map varT argNamesToDrop))
+                  (conT ''GenericK `appT` dataApp)
                   [ tySynInstD ''RepK $ tySynEqn [dataApp] $
                       deriveRepK dataName argNamesToDrop variant cons'
                   , deriveFromK cons'

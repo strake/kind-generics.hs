@@ -77,19 +77,19 @@ sumTreeAlg = Alg (Proxy @DataFirst) (branchCase :*: leafCase) id
 
 foldAlgebraConst
   :: forall k (t :: k) c r f tys.
-     (GenericK t tys, f ~ RepK t, forall p. FoldDT t c p f tys, TysSatisfy c tys, SForLoT tys)
+     (GenericK t, f ~ RepK t, forall p. FoldDT t c p f tys, TysSatisfy c tys, SForLoT tys)
      => AlgebraConst t c r -> t :@@: tys -> r
 foldAlgebraConst (AlgebraConst alg) = unConst . foldAlgebra @_ @t @c @(Const r) @_ @tys alg
 
 foldAlgebraFirst
   :: forall k (t :: * -> k) c r f a as.
-     (GenericK t (a :&&: as), f ~ RepK t, forall p. FoldDT t c p f (a :&&: as), TysSatisfy c (a :&&: as), SForLoT as)
+     (GenericK t, f ~ RepK t, forall p. FoldDT t c p f (a :&&: as), TysSatisfy c (a :&&: as), SForLoT as)
      => Algebra t c DataFirst -> t a :@@: as -> a
 foldAlgebraFirst alg = unDataFirst . foldAlgebra @_ @t @c @DataFirst @_ @(a :&&: as) alg
 
 foldAlgebraFirst0
   :: forall (t :: * -> *) c a r f.
-     ( GenericK t (a :&&: LoT0), f ~ RepK t, forall p. FoldDT t (c :&&&: Trivial) p f (a :&&: LoT0), c a )
+     ( GenericK t, f ~ RepK t, forall p. FoldDT t (c :&&&: Trivial) p f (a :&&: LoT0), c a )
      => Algebra t (c :&&&: Trivial) DataFirst -> t a -> a
 foldAlgebraFirst0 alg = unDataFirst . foldAlgebra @_ @t @(c :&&&: Trivial) @DataFirst @_ @(a :&&: LoT0) alg
 
@@ -165,10 +165,10 @@ data Algebra (t :: k) (c :: ConstraintsFor k) (r :: LoT k -> *) where
       -> Algebra t c r
 
 type Algebra' t r tys = AlgebraDT t r (RepK t) tys
-type FoldK t c r tys = (GenericK t tys, FoldDT t c r (RepK t) tys)
+type FoldK t c r tys = (GenericK t, FoldDT t c r (RepK t) tys)
 
 foldAlgebra :: forall k (t :: k) c r f tys.
-               ( GenericK t tys, f ~ RepK t, forall p. FoldDT t c p f tys
+               ( GenericK t, f ~ RepK t, forall p. FoldDT t c p f tys
                , TysSatisfy c tys, SForLoT tys )
             => Algebra t c r -> t :@@: tys -> r tys
 foldAlgebra (Alg (Proxy :: Proxy x) v r) x = r (foldG @k @t @c @x @tys v x)

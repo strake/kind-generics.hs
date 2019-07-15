@@ -7,6 +7,7 @@
 {-# language PatternSynonyms #-}
 {-# language UndecidableInstances   #-}
 {-# language FlexibleContexts       #-}
+{-# language FlexibleInstances      #-}
 {-# language ScopedTypeVariables    #-}
 {-# language MultiParamTypeClasses  #-}
 {-# language FunctionalDependencies #-}
@@ -14,6 +15,7 @@
 module Data.PolyKinded (
   -- * Lists of types and application
   LoT(..), (:@@:), LoT1, LoT2
+, HeadLoT, TailLoT, SpineLoT
   -- ** Singleton for list of types
 , SLoT(..), SForLoT(..), Proxy(..)
   -- * Splitting types
@@ -39,8 +41,33 @@ type LoT2 a b = a ':&&: b ':&&: LoT0
 -- >>> :kind! Either :@@: (Int :&&: Bool :&&: LoT0)
 -- Either Int Bool :: *
 type family (f :: k) :@@: (tys :: LoT k) :: * where
-  f :@@: 'LoT0        = f
-  f :@@: (a ':&&: as) = f a :@@: as
+  f :@@: _  = f
+  f :@@: as = f (HeadLoT as) :@@: (TailLoT as)
+
+-- | Head of a non-empty list of types.
+--
+-- >>> :kind! HeadLoT (Int :&&: LoT0)
+-- Int :: *
+type family HeadLoT (tys :: LoT (k -> k')) :: k where
+  HeadLoT (a :&&: _) = a
+
+-- | Tail of a non-empty list of types.
+--
+-- >>> :kind! TailLoT (Int :&&: Bool :&&: LoT0)
+-- Bool :&&: LoT0 :: LoT (Type -> Type)
+type family TailLoT (tys :: LoT (k -> k')) :: LoT k' where
+  TailLoT (_ :&&: as) = as
+
+-- | Construct the spine of a list of types whose length is known.
+--
+-- It can be useful to introduce unification variables for lists of types which
+-- will be fully instantiated during constraint resolution.
+-- A constraint @p ~ SpineLoT p@ will thus instantiate the spine of @p@.
+--
+-- On concrete lists, this is the identity function.
+type family SpineLoT (ts :: LoT k) :: LoT k where
+  SpineLoT (ts :: LoT (k -> k')) = HeadLoT ts :&&: SpineLoT (TailLoT ts)
+  SpineLoT (ts :: LoT (*)) = LoT0
 
 data SLoT (l :: LoT k) where
   SLoT0 :: SLoT LoT0
@@ -48,9 +75,9 @@ data SLoT (l :: LoT k) where
 
 class SForLoT (l :: LoT k) where
   slot :: SLoT l
-instance SForLoT LoT0 where
+instance (l ~ LoT0) => SForLoT (l :: LoT (*)) where
   slot = SLoT0
-instance SForLoT ts => SForLoT (t :&&: ts) where
+instance (l ~ (t :&&: ts), SForLoT ts) => SForLoT (l :: LoT (k -> k')) where
   slot = SLoTA Proxy slot
 
 -- | Split a type @t@ until the constructor @f@ is found.

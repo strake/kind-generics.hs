@@ -81,14 +81,14 @@ deriving instance (forall t. Show (f (t ':&&: x))) => Show (Exists k f x)
 
 -- THE TYPE CLASS
 
--- | Representable types of any kind. The definition of an instance must
--- mention the type constructor along with a list of types of the corresponding
--- length. For example:
+-- | Representable types of any kind. Examples:
 --
--- > instance GenericK Int    LoT0
--- > instance GenericK []     (a :&&: LoT0)
--- > instance GenericK Either (a :&&: b :&&: LoT0)
-class GenericK (f :: k) (x :: LoT k) where
+-- > instance GenericK Int
+-- > instance GenericK []
+-- > instance GenericK Either
+-- > instance GenericK (Either a)
+-- > instance GenericK (Either a b)
+class GenericK (f :: k) where
   type RepK f :: LoT k -> *
 
   -- | Convert the data type to its representation.
@@ -105,13 +105,13 @@ class GenericK (f :: k) (x :: LoT k) where
         => RepK f x -> f :@@: x
   toK = to . toGhcGenerics
 
-type GenericF t f x = (GenericK f x, x ~ (SplitF t f), t ~ (f :@@: x))
+type GenericF t f x = (GenericK f, x ~ (SplitF t f), t ~ (f :@@: x))
 fromF :: forall f t x. GenericF t f x => t -> RepK f x
 fromF = fromK @_ @f
 toF :: forall f t x. GenericF t f x => RepK f x -> t
 toF = toK @_ @f
 
-type GenericN n t f x = (GenericK f x, 'TyEnv f x ~ (SplitN n t), t ~ (f :@@: x))
+type GenericN n t f x = (GenericK f, 'TyEnv f x ~ (SplitN n t), t ~ (f :@@: x))
 fromN :: forall n t f x. GenericN n t f x => t -> RepK f x
 fromN = fromK @_ @f
 toN :: forall n t f x. GenericN n t f x => RepK f x -> t
@@ -119,11 +119,11 @@ toN = toK @_ @f
 
 -- CONVERSION BETWEEN FEWER AND MORE ARGUMENTS
 
-fromRepK :: forall f x xs. (GenericK f (x ':&&: xs), SubstRep' (RepK f) x xs)
+fromRepK :: forall f x xs. (GenericK f, SubstRep' (RepK f) x xs)
          => f x :@@: xs -> SubstRep (RepK f) x xs
 fromRepK = substRep . fromK @_ @f @(x ':&&: xs)
 
-toRepK :: forall f x xs. (GenericK f (x ':&&: xs), SubstRep' (RepK f) x xs)
+toRepK :: forall f x xs. (GenericK f, SubstRep' (RepK f) x xs)
        => SubstRep (RepK f) x xs -> f x :@@: xs
 toRepK = toK @_ @f @(x ':&&: xs) . unsubstRep
 
