@@ -26,8 +26,8 @@ $(deriveGenericK ''Tree)
 By doing so, two instances are generated:
 
 ```haskell
-instance GenericK Tree     (a :&&: LoT0) where ...
-instance GenericK (Tree a) LoT0          where ...
+instance GenericK Tree     where ...
+instance GenericK (Tree a) where ...
 ```
 
 ### Derivation from `GHC.Generics`
@@ -46,10 +46,10 @@ From this `Generic` instance, `kind-generics` can derive another one for its ver
 Let us look at the `GenericK` instance for `Tree`:
 
 ```haskell
-instance GenericK Tree (a :&&: LoT0) where
+instance GenericK Tree where
   type RepK Tree = (Field (Tree :$: Var0) :*: Field (Tree :$: Var0))
                    :+: (Field Var0)
-instance GenericK (Tree a) LoT0 where
+instance GenericK (Tree a) where
   type RepK (Tree a) = SubstRep (RepK Tree) a
   fromK = fromRepK
   toK   = toRepK
@@ -76,7 +76,7 @@ instance Functor Tree where
 Let us have a closer look at the definition of the `GenericK` type class. If you have been using other data type-generic programming libraries you might recognize `RepK` as the generalized version of `Rep`, which ties a data type with its description, and the pair of functions `fromK` and `toK` to go back and forth the original values and their generic counterparts.
 
 ```haskell
-class GenericK (f :: k) (x :: LoT k) where
+class GenericK (f :: k) where
   type RepK f :: LoT k -> *
   fromK :: f :@@: x -> RepK f x
   toK   :: RepK f x -> f :@@: x
@@ -121,9 +121,9 @@ Different generic operations require different *views* on data types. That is, t
 For a productive usage of `kind-generics`, you should provide as many views of your data type as you can. In the case of `Either` this entails writing the following instances:
 
 ```haskell
-instance GenericK Either (a :&&: b :&&: LoT0) where ...
-instance GenericK (Either a)    (b :&&: LoT0) where ...
-instance GenericK (Either a b)          LoT0  where ...
+instance GenericK Either       where ...
+instance GenericK (Either a)   where ...
+instance GenericK (Either a b) where ...
 ```
 
 Sometimes it is not possible to write all of these instances, due to restrictions in GHC's type system. The most common case is a data type making use of a type family -- we cannot write something like `Fam :$: Var0` because type families cannot be partially applied. The `kind-generics-th` package contains a thorough description of these limitations.
@@ -174,7 +174,7 @@ newtype K1 i  (t ::  *) = K1    { unK1    :: t }
 At the term level there is almost no difference in the usage, except for the fact that fields are wrapped in the `Field` constructor instead of `K1`.
 
 ```haskell
-instance GenericK Tree (a :&&: LoT0) where
+instance GenericK Tree where
   type RepK Tree = (Field (Tree :$: Var0) :*: Field (Tree :$: Var0))
                    :+: (Field Var0)
 
@@ -197,7 +197,7 @@ data WeirdTree a where
 The family of pattern functors `V1`, `U1`, `Field`, `(:+:)`, and `(:*:)` is not enough. Let us see what other things we use in the representation of `WeirdTree`:
 
 ```haskell
-instance GenericK WeirdTree (a :&&: LoT0) where
+instance GenericK WeirdTree where
   type RepK WeirdTree
     = Field (WeirdTree :$: Var0) :*: Field (WeirdTree :$: Var0)
       :+: Exists (*) ((Show :$: Var1) :=>: (Field Var0 :*: Field Var1))
@@ -210,7 +210,7 @@ But wait a minute! You have just told me that the first type variable is represe
 In most cases, `GenericK` instances for GADTs can be derived by `kind-generics-th`. Just for the record, here is how one of such `GenericK` instances looks like:
 
 ```haskell
-instance GenericK WeirdTree (a :&&: LoT0) where
+instance GenericK WeirdTree where
   type RepK WeirdTree = ...
 
   fromK (WeirdBranch l r) = L1 $                     Field l :*: Field r
@@ -312,7 +312,7 @@ However, that means that this version of `GShow` cannot be used with the `WeirdT
 
 ### Using an explicit list of types
 
-A more powerful approach to using `kind-generics` is to imitate the separation done in `GenericK` between a head and its type arguments. That means extending the class with a new parameter, and reworking the basic cases to include that argument.
+A more powerful approach to using `kind-generics` is to separate the head of a type from its type arguments. That means extending the class with a new parameter, and reworking the basic cases to include that argument.
 
 ```haskell
 class GShow (f :: LoT k -> *) (x :: LoT k) where

@@ -11,7 +11,7 @@ maintainer:          trupill@gmail.com
 -- copyright:
 category:            Data
 build-type:          Simple
-extra-source-files:  README.md
+extra-source-files:  README.md, CHANGELOG.md
 
 source-repository head
   type:     git

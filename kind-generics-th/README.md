@@ -45,9 +45,9 @@ type constructor. For instance, `$(deriveGenericK ''Either)` will generate
 three `GenericK` instances:
 
 ```haskell
-instance GenericK (Either a b) LoT0 where ...
-instance GenericK (Either a)   (b :&&: LoT0) where ...
-instance GenericK Either       (a :&&: b :&&: LoT0) where ...
+instance GenericK (Either a b) where ...
+instance GenericK (Either a)   where ...
+instance GenericK Either       where ...
 ```
 
 Not every data type can be partially applied all the way in this fashion,
@@ -62,7 +62,7 @@ however. Some notable counterexamples are:
 
    One cannot partially apply to `Bar a a` to simply `Bar a`, so
    `$(deriveGenericK 'MkBar)` will only generate a single instance for
-   `GenericK (Bar a a) LoT0`.
+   `GenericK (Bar a a)`.
 2. Dependent kinds. `kind-generics` is not currently capable of representing
    data types such as the following in their full generality:
 
@@ -74,8 +74,8 @@ however. Some notable counterexamples are:
    in a visible, dependent fashion). As a consequence,
    `$(deriveGenericK ''Baz)` will only generate the following instances:
 
-   * `instance GenericK (Baz k a) LoT0`
-   * `instance GenericK (Baz k)   (a :&&: LoT0)`
+   * `instance GenericK (Baz k a)`
+   * `instance GenericK (Baz k)  `
 3. Data types with type family applications. In the following example:
 
    ```haskell
@@ -87,7 +87,7 @@ however. Some notable counterexamples are:
    of `WrappedFam`, since the representation type would necessarily need to
    partially apply `Fam`, which GHC does not permit. Therefore,
    `$(deriveGenericK ''WrappedFam)` will only generate a single instance for
-   `GenericK (WrappedFam a) LoT0`.
+   `GenericK (WrappedFam a)`.
 
    There are some uses of type families that are not supported altogether.
    For instance, if a type family is applied to an _existentially_ quantified
@@ -144,7 +144,7 @@ known limitations of `deriveGenericK`:
    Therefore, we ought to get a `GenericK` instance like this:
 
    ```haskell
-   instance GenericK (Quux :: k -> *) (a :&&: LoT0) where
+   instance GenericK (Quux :: k -> *) where
      type RepK (Quux :: k -> *) =
        Exists *
          ((Kon (k ~ Type) :&: (Var0 :~~: Var1)) :=>: Field (Maybe :$: Var0))
