@@ -279,7 +279,7 @@ Now in the `Field` instance we can express the requirements for a specific atom:
 
 ```haskell
 instance GShow (Field t) where
-  type ReqsShow (Field t) x = Interpret t x
+  type ReqsShow (Field t) x = Show (Interpret t x)
   gshow = ...
 ```
 
