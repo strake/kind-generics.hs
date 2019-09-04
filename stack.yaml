@@ -5,8 +5,4 @@ packages:
 - kind-generics-deriving/
 - kind-generics-th/
 - unbound-kind-generics/
-- kind-algebras/
-extra-deps:
-- th-abstraction-0.3.1.0
-- aeson-1.4.3.0
-resolver: lts-13.19
+resolver: lts-14.4
