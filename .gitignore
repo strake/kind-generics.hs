@@ -2,3 +2,4 @@ dist*
 .*
 *.local
 stack.yaml.lock
+cabal-config-flags
