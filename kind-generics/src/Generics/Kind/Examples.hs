@@ -149,6 +149,23 @@ instance GenericK (WeirdTreeR a) where
   toK (L1 (Field l :*: Field r)) = WeirdBranchR l r
   toK (R1 (Exists (SuchThat (Field a :*: Field x)))) = WeirdLeafR a x
 
+-- From https://gitlab.com/trupill/kind-generics/issues/3
+
+data TTY m a where
+  WriteTTY :: String -> TTY m ()
+  ReadTTY  :: TTY m String
+
+instance GenericK (TTY m a) where
+  type RepK (TTY m a)
+    =     ((Kon a :~: Kon ()) :=>: Field (Kon String))
+      :+: ((Kon a :~: Kon String) :=>: U1)
+
+  fromK (WriteTTY s) = L1 (SuchThat (Field s))
+  fromK ReadTTY      = R1 (SuchThat U1)
+
+  toK (L1 (SuchThat (Field s))) = WriteTTY s
+  toK (R1 (SuchThat U1))        = ReadTTY
+
 -- Weird-kinded types
 
 data T (a :: k) where
