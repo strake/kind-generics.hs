@@ -18,6 +18,10 @@ import GHC.Generics as Generics hiding (conIsRecord, conName, datatypeName)
 import Language.Haskell.TH as TH
 import Language.Haskell.TH.Datatype as THAbs
 
+#if MIN_VERSION_template_haskell(2,15,0)
+import GHC.Classes (IP)
+#endif
+
 -- | Given the 'Name' of a data type (or, the 'Name' of a constructor belonging
 -- to a data type), generate 'GenericK' instances for that data type. You will
 -- likely need to enable most of these language extensions in order for GHC to
@@ -38,14 +42,10 @@ import Language.Haskell.TH.Datatype as THAbs
 -- * @TypeFamilies@
 deriveGenericK :: Name -> Q [Dec]
 deriveGenericK n = do
-  DatatypeInfo{ datatypeName    = dataName
-#if MIN_VERSION_th_abstraction(0,3,0)
+  DatatypeInfo{ datatypeName      = dataName
               , datatypeInstTypes = univVars
-#else
-              , datatypeVars    = univVars
-#endif
-              , datatypeVariant = variant
-              , datatypeCons    = cons
+              , datatypeVariant   = variant
+              , datatypeCons      = cons
               } <- reifyDatatype n
   cons' <- traverse resolveConSynonyms cons
   let deriveInsts :: [Type] -> [Type] -> Q [Dec]
@@ -82,7 +82,7 @@ deriveGenericK n = do
             dataApp = pure $ SigT (foldr (flip AppT) (ConT dataName) argsToKeep) kind
         instanceD (pure [])
                   (conT ''GenericK `appT` dataApp)
-                  [ tySynInstD ''RepK $ tySynEqn [dataApp] $
+                  [ tySynInstDCompat ''RepK Nothing [dataApp] $
                       deriveRepK dataName argNamesToDrop variant cons'
                   , deriveFromK cons'
                   , deriveToK cons'
@@ -246,6 +246,11 @@ deriveRepK dataName univVarNames dataVariant cons = do
             go (UInfixT ty1 n ty2) = go (ConT n `AppT` ty1 `AppT` ty2)
             go (SigT ty _)         = go ty
             go (ParensT ty)        = ParensT <$> go ty
+#if MIN_VERSION_template_haskell(2,15,0)
+            go (AppKindT ty _)       = go ty
+            go (ImplicitParamT n ty) = go (ConT ''IP `AppT` LitT (StrTyLit n) `AppT` ty)
+                                         -- Desugar (?n :: T) into (IP "n" T)
+#endif
 
             -- Failure case
             go ty@ForallT{}       = can'tRepresent "rank-n type" ty

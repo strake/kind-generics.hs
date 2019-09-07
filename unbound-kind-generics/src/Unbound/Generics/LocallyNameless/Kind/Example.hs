@@ -31,7 +31,7 @@ data Expr t where
 $(deriveGenericK ''Expr)
 
 eval :: Typeable t => Expr t -> FreshM (Expr t)
-eval (V x) = fail $ "unbound variable " ++ show x
+eval (V x) = error $ "unbound variable " ++ show x
 eval e@(Lam {}) = return e
 eval (App e1 e2) = do
   v1 <- eval e1
@@ -42,7 +42,7 @@ eval (App e1 e2) = do
      (x, body) <- unbind bnd
      let body' = subst x v2 body
      eval body'
-   _ -> fail "application of non-lambda"
+   _ -> error "application of non-lambda"
 
 example :: forall a. Typeable a => Expr (a -> a)
 example =
