@@ -1,8 +1,10 @@
 {-# language AllowAmbiguousTypes #-}
+{-# language CPP #-}
 {-# language DataKinds #-}
 {-# language EmptyCase #-}
 {-# language FlexibleInstances #-}
 {-# language GADTs #-}
+{-# language ImplicitParams #-}
 {-# language MultiParamTypeClasses #-}
 {-# language PolyKinds #-}
 {-# language ScopedTypeVariables #-}
@@ -80,6 +82,10 @@ main =
               , isGenericK @_ @TC4     @(_ ':&&: 'LoT0)
 
               , isGenericK @_ @(TC5 _) @'LoT0
+
+#if MIN_VERSION_template_haskell(2,15,0)
+              , isGenericK @_ @TC6     @'LoT0
+#endif
               ]
   in insts `seq` pure ()
 
@@ -120,6 +126,12 @@ newtype TC4 :: Type -> Type where
 data TC5 :: Type -> Type where
   MkTC5 :: forall k (a :: k). k -> Proxy a -> TC5 k
 
+#if MIN_VERSION_template_haskell(2,15,0)
+-- Implicit parameters
+data TC6 :: Type where
+  MkTC6 :: (?n :: Bool) => TC6
+#endif
+
 $(concat <$> traverse deriveGenericK
     [ -- Representation types
       ''V1, ''(:+:), ''(:*:), ''U1, ''M1, ''Field, ''(:=>:), ''Exists
@@ -132,4 +144,7 @@ $(concat <$> traverse deriveGenericK
 
       -- Tricky cases
     , ''TC1, ''TC2, ''TC3, ''TC4, ''TC5
+#if MIN_VERSION_template_haskell(2,15,0)
+    , ''TC6
+#endif
     ])
