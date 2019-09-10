@@ -11,8 +11,10 @@
 {-# language TypeApplications #-}
 {-# language ConstraintKinds #-}
 module Unbound.Generics.LocallyNameless.Kind.Derive (
+  -- For use with DerivingVia
+  AutoAlpha(..)
   -- Default definitions for 'Alpha'
-  aeqDefK
+, aeqDefK
 , fvAnyDefK
 , closeDefK
 , openDefK
@@ -49,6 +51,29 @@ import Unbound.Generics.PermM
 import Generics.Kind
 
 type GenericAlpha a = (GenericK a, GAlphaK (RepK a) LoT0 LoT0)
+
+newtype AutoAlpha a = AutoAlpha { unAutoAlpha :: a }
+                    deriving (Eq, Show)
+
+instance (Typeable a, GenericAlpha a, Show a) => Alpha (AutoAlpha a) where
+  aeq' ctx (AutoAlpha x) (AutoAlpha y)
+    = aeqDefK ctx x y
+  fvAny' ctx nfn (AutoAlpha x) 
+    = AutoAlpha <$> fvAnyDefK ctx nfn x
+  close ctx npf = AutoAlpha . closeDefK ctx npf . unAutoAlpha
+  open  ctx npf = AutoAlpha . openDefK  ctx npf . unAutoAlpha
+  isPat       = isPatDefK   . unAutoAlpha
+  isTerm      = isTermDefK  . unAutoAlpha
+  isEmbed     = isEmbedDefK . unAutoAlpha
+  nthPatFind  = nthPatFindDefK  . unAutoAlpha
+  namePatFind = namePatFindDefK . unAutoAlpha
+  swaps' ctx perm = AutoAlpha . swapsDefK ctx perm . unAutoAlpha
+  lfreshen' ctx (AutoAlpha x) cont 
+    = lfreshenDefK ctx x (\y p -> cont (AutoAlpha y) p)
+  freshen' ctx (AutoAlpha x)
+    = (\(y, p) -> (AutoAlpha y, p)) <$> freshenDefK ctx x
+  acompare' ctx (AutoAlpha x) (AutoAlpha y)
+    = acompareDefK ctx x y
 
 aeqDefK :: forall a. (GenericAlpha a)
         => AlphaCtx -> a -> a -> Bool

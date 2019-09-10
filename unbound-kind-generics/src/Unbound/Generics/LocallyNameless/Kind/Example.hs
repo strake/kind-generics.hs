@@ -9,6 +9,7 @@
 {-# language TypeApplications #-}
 {-# language ScopedTypeVariables #-}
 {-# language TemplateHaskell #-}
+{-# language DerivingVia #-}
 -- | Example of how to use `unbound-kind-generics`
 module Unbound.Generics.LocallyNameless.Kind.Example where
 
@@ -55,8 +56,6 @@ example =
 
 deriving instance Show (Expr t)
 
-
-
 {-
 instance GenericK (Expr t) LoT0 where
   type RepK (Expr t) =
@@ -96,6 +95,7 @@ instance Typeable t => Alpha (Expr t) where
   lfreshen'   = lfreshenDefK
   freshen'    = freshenDefK
   acompare'   = acompareDefK
+-- deriving via (AutoAlpha (Expr t)) instance Typeable t => Alpha (Expr t)
 
 instance (Typeable small, Typeable big)
          => Subst (Expr small) (Expr big) where

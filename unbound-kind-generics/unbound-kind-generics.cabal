@@ -11,7 +11,7 @@ description:         Specify the binding structure of your data type with an
                      handles the rest!  Automatically derives
                      alpha-equivalence, free variable calculation,
                      capture-avoiding substitution, and more. See
-                     @Unbound.Generics.LocallyNameless.Kind@ to get started.
+                     @Unbound.Generics.LocallyNameless.Kind.Derive@ to get started.
                      .
                      This is an independent re-implementation of <http://hackage.haskell.org/package/unbound-generics unbound-generics>
                      but using <https://hackage.haskell.org/package/kind-generics kind-generics>
