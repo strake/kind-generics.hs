@@ -15,7 +15,7 @@ import Data.PolyKinded.Functor
 import Data.Proxy
 import Generics.SOP.Kind
 
-kfmapDefault :: forall (f :: k) v as bs.
+kfmapDefault :: forall k (f :: k) v as bs.
                 (GenericK f as, GenericK f bs, AllAtoms (GFunctorArg v 'Co as bs) (CodeK f))
              => Mappings v as bs -> f :@@: as -> f :@@: bs
 kfmapDefault v = toK @k @f @bs . gfmap v . fromK @k @f @as
@@ -25,7 +25,7 @@ gfmap :: forall k (f :: DataType k) v as bs. AllAtoms (GFunctorArg v 'Co as bs) 
 gfmap v = goS
   where
     goS :: forall (g :: DataType k). AllAtoms (GFunctorArg v 'Co as bs) g
-        => NS (NB as) g -> NS (NB bs) g 
+        => NS (NB as) g -> NS (NB bs) g
     goS (Z (x :: NB as b)) = Z (goB x)
     goS (S x) = S (goS x)
 

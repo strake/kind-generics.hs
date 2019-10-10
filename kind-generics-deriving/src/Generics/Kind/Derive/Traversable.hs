@@ -32,7 +32,7 @@ traverseDefault = traverseDefaultPos @VZ @f @(LoT1 a) @(LoT1 b)
 
 class GTraversable (f :: LoT k -> *) (v :: TyVar k *)
                    (as :: LoT k) (bs :: LoT k) where
-  gtraverse :: Applicative g 
+  gtraverse :: Applicative g
             => (Interpret (Var v) as -> g (Interpret (Var v) bs))
             -> f as -> g (f bs)
 
@@ -90,7 +90,7 @@ instance ( Traversable (Interpret f as), Interpret f as ~ Interpret f bs
 instance GTraversableArg ('Var 'VZ) 'VZ (a ':&&: as) (b ':&&: bs) True where
   gtraversef f x = f x
 -- We need to keep looking
-instance forall (v :: TyVar d (*)) n r as s bs isthere.
+instance forall d (v :: TyVar d (*)) n r as s bs isthere.
          GTraversableArg ('Var v) n as bs isthere
          => GTraversableArg ('Var ('VS v)) ('VS n) (r ':&&: as) (s ':&&: bs) isthere where
   gtraversef f x = gtraversef @d @(Var v) @n @as @bs @isthere f x

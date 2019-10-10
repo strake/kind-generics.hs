@@ -95,7 +95,7 @@ instance ( Functor (Interpret f as), Interpret f as ~ Interpret f bs
 instance GFunctorArgPos ('Var 'VZ) 'VZ (a ':&&: as) (b ':&&: bs) True where
   gfmappf f x = f x
 -- We need to keep looking
-instance forall (v :: TyVar d (*)) n r as s bs isthere.
+instance forall d (v :: TyVar d (*)) n r as s bs isthere.
          GFunctorArgPos ('Var v) n as bs isthere
          => GFunctorArgPos ('Var ('VS v)) ('VS n) (r ':&&: as) (s ':&&: bs) isthere where
   gfmappf f x = gfmappf @d @(Var v) @n @as @bs @isthere f x

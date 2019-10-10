@@ -75,7 +75,7 @@ deriving instance (Interpret c x => Show (f x)) => Show ((c :=>: f) x)
 -- > instance GenericK E LoT0 where
 -- >   type RepK E = Exists (*) (Field Var0)
 data Exists k (f :: LoT (k -> d) -> *) (x :: LoT d) where
-  Exists :: forall (t :: k) d (f :: LoT (k -> d) -> *) (x :: LoT d)
+  Exists :: forall k (t :: k) d (f :: LoT (k -> d) -> *) (x :: LoT d)
           .{ unExists :: f (t ':&&: x) } -> Exists k f x
 deriving instance (forall t. Show (f (t ':&&: x))) => Show (Exists k f x)
 
