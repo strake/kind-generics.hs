@@ -20,6 +20,67 @@ import Data.Proxy
 import Generics.Kind
 import Generics.Kind.TH
 
+----------------
+-- Data families
+----------------
+
+data family DF a b c
+data instance DF Char Int c = DF1 c
+data instance DF a a c = DF2 a c
+data instance DF Bool () (Maybe c) = DF3 c
+
+---------------
+-- Tricky cases
+---------------
+
+-- An existential context with multiple constraints
+data TC1 :: Type -> Type where
+  MkTC1 :: forall a. (Eq a, Read a, Show a) => TC1 a
+
+-- A kind variable being used as a type variable
+data TC2 :: forall k. k -> Type where
+  MkTC2 :: forall k (a :: k). k -> Proxy a -> TC2 a
+
+-- Visible dependent quantification
+data TC3 k :: k -> Type where
+  MkTC3 :: forall k (a :: k). k -> Proxy a -> TC3 k a
+
+-- This sort of type family is OK to partially apply
+type family UnsaturateMe :: Type -> Type
+newtype TC4 :: Type -> Type where
+  MkTC4 :: forall a. UnsaturateMe a -> TC4 a
+
+-- Tricky kind inference involving Proxy
+data TC5 :: Type -> Type where
+  MkTC5 :: forall k (a :: k). k -> Proxy a -> TC5 k
+
+#if MIN_VERSION_template_haskell(2,15,0)
+-- Implicit parameters
+data TC6 :: Type where
+  MkTC6 :: (?n :: Bool) => TC6
+#endif
+
+$(concat <$> traverse deriveGenericK
+    [ -- Representation types
+      ''V1, ''(:+:), ''(:*:), ''U1, ''M1, ''Field, ''(:=>:), ''Exists
+
+      -- Other data types
+    , ''LoT, ''TyEnv
+
+      -- Data families
+    , 'DF1, 'DF2, 'DF3
+
+      -- Tricky cases
+    , ''TC1, ''TC2, ''TC3, ''TC4, ''TC5
+#if MIN_VERSION_template_haskell(2,15,0)
+    , ''TC6
+#endif
+    ])
+
+-------
+-- main
+-------
+
 main :: IO ()
 main =
   let insts = [ -- Representation types
@@ -91,60 +152,3 @@ main =
 
 isGenericK :: forall k (f :: k) (x :: LoT k). GenericK f => ()
 isGenericK = fromK @k @f @x `seq` ()
-
-----------------
--- Data families
-----------------
-
-data family DF a b c
-data instance DF Char Int c = DF1 c
-data instance DF a a c = DF2 a c
-data instance DF Bool () (Maybe c) = DF3 c
-
----------------
--- Tricky cases
----------------
-
--- An existential context with multiple constraints
-data TC1 :: Type -> Type where
-  MkTC1 :: forall a. (Eq a, Read a, Show a) => TC1 a
-
--- A kind variable being used as a type variable
-data TC2 :: forall k. k -> Type where
-  MkTC2 :: forall k (a :: k). k -> Proxy a -> TC2 a
-
--- Visible dependent quantification
-data TC3 k :: k -> Type where
-  MkTC3 :: forall k (a :: k). k -> Proxy a -> TC3 k a
-
--- This sort of type family is OK to partially apply
-type family UnsaturateMe :: Type -> Type
-newtype TC4 :: Type -> Type where
-  MkTC4 :: forall a. UnsaturateMe a -> TC4 a
-
--- Tricky kind inference involving Proxy
-data TC5 :: Type -> Type where
-  MkTC5 :: forall k (a :: k). k -> Proxy a -> TC5 k
-
-#if MIN_VERSION_template_haskell(2,15,0)
--- Implicit parameters
-data TC6 :: Type where
-  MkTC6 :: (?n :: Bool) => TC6
-#endif
-
-$(concat <$> traverse deriveGenericK
-    [ -- Representation types
-      ''V1, ''(:+:), ''(:*:), ''U1, ''M1, ''Field, ''(:=>:), ''Exists
-
-      -- Other data types
-    , ''LoT, ''TyEnv
-
-      -- Data families
-    , 'DF1, 'DF2, 'DF3
-
-      -- Tricky cases
-    , ''TC1, ''TC2, ''TC3, ''TC4, ''TC5
-#if MIN_VERSION_template_haskell(2,15,0)
-    , ''TC6
-#endif
-    ])
