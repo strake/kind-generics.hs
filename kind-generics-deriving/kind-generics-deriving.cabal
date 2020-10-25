@@ -22,12 +22,10 @@ library
                        Generics.Kind.Derive.FunctorPosition,
                        Generics.Kind.Derive.FunctorOne,
                        Generics.Kind.Derive.Traversable,
-                       Generics.Kind.Derive.KFunctor,
-                       Generics.Kind.Derive.Json,
-                       Generics.Kind.Derive.Examples
+                       Generics.Kind.Derive.KFunctor
   -- other-modules:
   -- other-extensions:
-  build-depends:       base >= 4.12 && < 5, kind-apply, kind-generics >= 0.4, aeson
+  build-depends:       base >= 4.12 && < 5, kind-apply, kind-generics >= 0.4
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall -fprint-explicit-kinds
